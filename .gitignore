@@ -1,0 +1,5 @@
+project_proposal.*
+!project_proposal.tex
+!project_proposal.pdf
+
+.DS_Store

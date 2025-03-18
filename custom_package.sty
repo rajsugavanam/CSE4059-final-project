@@ -1,0 +1,166 @@
+\ProvidesPackage{custom_package}
+% \usepackage[paper=letterpaper, vmargin=1in, hmargin=0.5in]{geometry}
+
+% \usepackage{newcomputermodern}
+\usepackage[T1]{fontenc}
+\usepackage{mlmodern} % math/main font
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm} % math notation, etc math utilities
+
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{ragged2e} % justify environment
+\usepackage{multicol}
+\usepackage{xcolor}
+\usepackage{tikz} % graphics
+\usepackage{array}
+\usepackage{mathtools}
+\usepackage{enumerate} % custom enumerate numberings (eg \bfseries 1.)
+\usepackage{hyperref} % hyperlinks
+
+\usepackage{import}
+
+\usepackage{xcolor} % coloring
+\usepackage{pgfopts}
+\usepackage{tcolorbox} % boxing/framing things
+
+\usepackage{listings} % code
+\usepackage{algpseudocodex} % pseudocode
+\usepackage{algorithm}
+
+\lstdefinestyle{code}{
+	breaklines=true,
+	showstringspaces=false,
+	breakatwhitespace=true,
+	stringstyle = {\color{CtpGreen}},
+	commentstyle={\color{CtpOverlay1}},
+	basicstyle = {\footnotesize\color{CtpText}\ttfamily},
+	keywordstyle = {\color{CtpMauve}},
+	keywordstyle = [2]{\color{CtpBlue}},
+	keywordstyle = [3]{\color{CtpYellow}},
+	keywordstyle = [4]{\color{CtpLavender}},
+	keywordstyle = [5]{\color{CtpPeach}},
+	keywordstyle = [6]{\color{CtpTeal}},
+	otherkeywords = {<, ||, =, ?},
+	% morekeywords = [2]{<, ||, =, ?},
+}
+
+% fixes sizes of some symbols (ex. integrals)
+% for mlmodern.
+\DeclareFontFamily{OMX}{mlmex}{}
+
+\DeclareFontShape{OMX}{mlmex}{m}{n}{< - > mlmex10}{}
+
+% \setlength{\parindent}{24pt}
+
+% General
+\DeclarePairedDelimiterX{\pars}[1]{\lparen}{\rparen}{#1}
+\DeclarePairedDelimiterX{\brackets}[1]{\lbrack}{\rbrack}{#1}
+\DeclarePairedDelimiterX{\braces}[1]{\lbrace}{\rbrace}{#1}
+\DeclarePairedDelimiterX{\verts}[1]{\lvert}{\rvert}{#1}
+\DeclarePairedDelimiterX{\angles}[1]{\langle}{\rangle}{#1}
+
+% Set Properties
+\newcommand{\power}[1]{\mathcal P\pars*{#1}}
+\newcommand{\comp}[1]{#1^\complement}
+
+% Sets
+\newcommand{\reals}{\mathbb R}
+\newcommand{\complex}{\mathbb C}
+\newcommand{\naturals}{{\mathbb N}}
+\newcommand{\algebraics}{{\mathbb K}}
+\newcommand{\rationals}{\mathbb Q}
+\newcommand{\integers}{\mathbb Z}
+\newcommand{\funset}[2]{\mathcal{F}\pars*{#1, #2}}
+
+% Special Set Symbols
+\newcommand{\ii}{\mathfrak{i}}
+\newcommand{\Nnaturals}{{\aleph_0}}
+\newcommand{\Nreals}{{\mathfrak c}}
+
+% Functions
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\domain}[1]{\operatorname{dom}\pars*{#1}}
+\newcommand{\range}[1]{\operatorname{range}\pars*{#1}}
+
+% Polynomials
+\newcommand{\degree}[1]{\mathop{\mathrm{deg} \pars{#1}}}
+
+% Calculus
+\newcommand{\dif}[1]{\operatorname{d}\!#1 \mathop{}\!}
+\newcommand{\Dt}[2][]{\dfrac{\mathrm{d} #1}{\mathrm{d}#2}}
+\newcommand{\Dtn}[3][]{\dfrac{d^{#2}\!#1}{d #3^{#2}}}
+\newcommand{\D}[2][]{\dfrac{\partial #1}{\partial #2}}
+\newcommand{\curl}[1]{\nabla \times #1}
+\newcommand{\divergence}[1]{\nabla \cdot #1}
+\newcommand{\grad}[1]{\nabla #1}
+
+% Linear Algebra
+\newcommand{\linset}[2]{\operatorname{\mathcal{L}}\pars*{#1, #2}}
+\newcommand{\zero}{\mathbf 0}
+\newcommand{\zeromat}{\mathbf O}
+\newcommand{\Span}[1]{\operatorname{span}\pars*{#1}}
+\newcommand{\Null}[1]{\operatorname{null}\pars*{#1}}
+\newcommand{\nullity}[1]{\operatorname{nullity}\pars*{#1}}
+\newcommand{\rank}[1]{\operatorname{rank}\pars*{#1}}
+\newcommand{\matr}[1]{\brackets*{#1}}
+\newcommand{\unit}{\mathbf{e}}
+\newcommand{\basis}[1]{\operatorname{basis}\pars*{#1}}
+\renewcommand{\dim}[1]{\operatorname{dim}\pars*{#1}}
+\newcommand{\bvec}[1]{\mathbf #1}
+\newcommand{\mat}[1]{\mathbf #1}
+\newcommand{\identity}{\mathbf I}
+\newcommand{\transpose}{\intercal}
+\newcommand{\norm}[1]{\verts*{#1}}
+\newcommand{\inp}[2]{\angles*{#1, #2}}
+\newcommand{\tr}[1]{\operatorname{tr}\pars*{#1}}
+% \newcommand{\adjoint}[1]{#1^\textbf{*}}
+\newcommand{\adjoint}[1]{#1^\star}
+
+% Logic
+\newcommand{\quant}[1]{\left(#1\right)}
+
+% Combinatorics
+\newcommand{\inversion}[1]{\operatorname{inv}\pars*{#1}}
+\newcommand{\runs}[1]{\operatorname{runs}\pars*{#1}}
+\newcommand{\cycles}[1]{\operatorname{cyc}\pars*{#1}}
+\newcommand{\exc}[1]{\operatorname{exc}\pars*{#1}}
+\newcommand{\des}[1]{\operatorname{des}\pars*{#1}}
+\newcommand{\maj}[1]{\operatorname{maj}\pars*{#1}}
+\newcommand{\permut}{\mathfrak{S}}
+
+% Quantum Mechanics/Computing
+% \newcommand{\bra}[1]{\left\lvert #1 \right\rangle}
+% \newcommand{\ket}[1]{\left\langle #1 \right\rvert}
+% \newcommand{\braket}[2]{\left\langle #1 \delimsize\vert #2 \right\rangle}
+\DeclarePairedDelimiter{\kets}{\lvert}{\rangle}
+\DeclarePairedDelimiter{\bras}{\langle}{\rvert}
+\DeclarePairedDelimiterX{\brakets}[2]{\langle}{\rangle}{#1 \delimsize\vert #2}
+\newcommand{\bra}[1]{\bras*{#1}}
+\newcommand{\ket}[1]{\kets*{#1}}
+\newcommand{\braket}[2]{\brakets*{#1}{#2}}
+\newcommand{\ketbra}[2]{\ket{#1}\bra{#2}}
+\newcommand{\ketzero}{\kets*{0}}
+\newcommand{\ketone}{\kets*{1}}
+\newcommand{\ketplus}{\kets*{+}}
+\newcommand{\ketminus}{\kets*{-}}
+\newcommand{\pauliX}{\mathbf{X}}
+\newcommand{\pauliY}{\mathbf{Y}}
+\newcommand{\pauliZ}{\mathbf{Z}}
+\newcommand{\hadamard}{\mathbf{H}}
+
+% Algorithms
+\newcommand{\polyred}{\leq_p}
+
+% Etc.
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\newtheorem{exercise}{Exercise}
+\newtheorem{corollary}{Corollary}
+\newtheorem*{theorem*}{Theorem}
+\newtheorem*{definition*}{Definition}
+\newtheorem*{example*}{Example}
+\newtheorem*{exercise*}{Exercise}
+\newtheorem*{corollary*}{Corollary}
