@@ -17,11 +17,31 @@
 
 \begin{document}
 
-{\section*{Project Proposal}}
+{\section*{CUDA RAY TRACER (CRT)}}
 
 {\subsection*{Project Abstract}}
 
-% stuff
+% PROBLEM STATEMENT
+Explore physically based rendering techniques involving ray tracing and accelerate the
+rendering algorithms with CUDA, and potentially utilize OpenGL. We plan to first follow through a
+CPU based ray tracing guide \href{https://raytracing.github.io/books/RayTracingInOneWeekend.html}{Raytracing In One Weekend}
+and implement GPU-accelerated parallelization when possible, and utilize physics concepts to
+approximate a realistic image render.
+
+% OBJECTIVE
+Our objective is to implement features that bring us closer to a photorealistic render of an object
+i.e. a raytraced lighting/shading model, object material features, a camera/viewport to render the
+image, and post-processing features. We plan to support dielectric and/or metallic materials.
+
+%APPROACH
+Implement Whitted style ray tracing algorithm to calculate the lighting.
+We can potentially use tiled matrix multiply for implementing 3D projection like perspective.
+Post-processing features like anti-aliasing and depth-of-field blur will probably use convolution.
+
+% EXPECTED OUTCOME
+We expect to speed up graphical rendering processes by utilizing the GPU when parallelization is
+useful/necessary. Hopefully the final product will be able to to perform ray tracing and
+realistically render simple objects and materials.
 
 {\subsection*{Group Member List}}
 
