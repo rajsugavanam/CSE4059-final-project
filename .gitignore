@@ -3,3 +3,10 @@ project_proposal.*
 !project_proposal.pdf
 
 .DS_Store
+
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
