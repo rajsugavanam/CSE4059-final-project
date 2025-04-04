@@ -1,6 +1,6 @@
 CompileFlags:
   Add:
-    - --cuda-gpu-arch=sm_52
+    - --cuda-gpu-arch=sm_89
     # change this if you need to.
   Remove:
     - -forward-unknown-to-host-compiler
