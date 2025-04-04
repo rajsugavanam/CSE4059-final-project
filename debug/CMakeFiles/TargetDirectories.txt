@@ -1,3 +1,0 @@
-/home/rnsug/programming/CSE4059-final-project/debug/CMakeFiles/crt.dir
-/home/rnsug/programming/CSE4059-final-project/debug/CMakeFiles/edit_cache.dir
-/home/rnsug/programming/CSE4059-final-project/debug/CMakeFiles/rebuild_cache.dir

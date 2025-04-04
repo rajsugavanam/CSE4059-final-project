@@ -5,6 +5,7 @@ project(cuda_ray_tracer LANGUAGES CXX CUDA)
 # find_package(library)
 
 # include_directories(${library_INCLUDE_DIRS})
+set(CMAKE_CUDA_ARCHITECTURES 89)
 
 # add_subdirectory(src)
 set(CMAKE_CXX_STANDARD 14)
