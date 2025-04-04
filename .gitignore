@@ -19,5 +19,7 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 .cache
+debug/compile_commands.json
+release/compile_commands.json
 
 crt
