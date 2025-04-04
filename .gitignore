@@ -10,3 +10,7 @@ project_proposal.*
 *.log
 *.out
 *.synctex.gz
+
+# EXTRA
+.clangd
+compile_commands.json
