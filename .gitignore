@@ -17,6 +17,7 @@ project_proposal.*
 CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
+Makefile
 .cache
 
 crt
