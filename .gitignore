@@ -12,5 +12,5 @@ project_proposal.*
 *.synctex.gz
 
 # EXTRA
-.clangd
-compile_commands.json
+# .clangd
+# compile_commands.json

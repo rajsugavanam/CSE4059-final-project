@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/rnsug/programming/CSE4059-final-project/release",
+  "command": "/usr/local/cuda-12.8/bin/nvcc -forward-unknown-to-host-compiler   -std=c++14 \"--generate-code=arch=compute_52,code=[compute_52,sm_52]\" -x cu -c /home/rnsug/programming/CSE4059-final-project/src/ray_tracer.cu -o CMakeFiles/crt.dir/src/ray_tracer.cu.o",
+  "file": "/home/rnsug/programming/CSE4059-final-project/src/ray_tracer.cu",
+  "output": "CMakeFiles/crt.dir/src/ray_tracer.cu.o"
+}
+]

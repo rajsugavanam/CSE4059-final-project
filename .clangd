@@ -1,0 +1,8 @@
+CompileFlags:
+  Add:
+    - --cuda-gpu-arch=sm_52
+    # change this if you need to.
+  Remove:
+    - -forward-unknown-to-host-compiler
+    - --generate-code*
+    # clangd doesn't like nvcc flags.
