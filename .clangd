@@ -5,6 +5,7 @@ CompileFlags:
   Remove:
     [
       -forward-unknown-to-host-compiler,
-      --generate-code*
+      --generate-code*,
+      -Xcompiler*
     ]
     # clangd doesn't like nvcc flags.
