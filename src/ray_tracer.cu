@@ -13,11 +13,15 @@ int main() {
     VecN<float>* floatVec2 = new VecN<float>(TEST_SIZE, vec2arr);
     VecN<float>* resultVec = floatVec1->deviceAdd(floatVec2);
 
+    std::cout << "Addition:" << std::endl;
     int N = resultVec->N;
     float* contents = resultVec->pv;
     for (int i=0; i<N; i++) {
         std::cout << i << ": " << contents[i] << std::endl;
     }
+
+    std::cout << "Dot Product:" << std::endl;
+    std::cout << floatVec1->deviceDot(floatVec2) << std::endl;
 
     return 0;
 }

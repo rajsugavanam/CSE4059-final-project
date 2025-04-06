@@ -14,9 +14,13 @@ class VecN {
 
 
         VecN<T>* deviceAdd(VecN<T>* vec2);
+        T deviceDot(VecN<T>* vec2);
 
 
 };
 
 template <typename T>
 __global__ void kerAdd(T* oper1, T* oper2, T* res, int N);
+
+template <typename T>
+__global__ void kerDot(T* oper1, T* oper2, T* res, int N);
