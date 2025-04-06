@@ -1,7 +1,6 @@
 CompileFlags:
   Add:
-    [-xcuda]
-    # - --cuda-gpu-arch=sm_89
+    [ -xcuda ]
     # change this if you need to.
   Remove:
     [
