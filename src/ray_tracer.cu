@@ -6,16 +6,97 @@
 // #include <math/vec3.cuh>
 #include <ostream>
 
-#include "vec3.cuh"
+#include "ray.cuh"
 #include "timer.h"
+#include "triangle3.cuh"
+#include "vec3.cuh"
 
-#define TEST_SIZE 4
-const int pixel_width = 1920;
+// perhaps move all this to a struct...
+const float aspect_ratio = 16.0f / 9.0f;
 const int pixel_height = 1080;
+const int pixel_width = static_cast<int>(pixel_height * aspect_ratio);
+const float focal_length = 1.0f;
+const float viewport_height = 2.0f;
+const float viewport_width =
+    viewport_height * (float(pixel_width) / pixel_height);
+const Vec3 camera_center = Vec3(0.0f, 0.0f, 0.0f);
+
+// viewport vector
+const Vec3 viewport_u = Vec3(viewport_width, 0.0f, 0.0f);
+const Vec3 viewport_v = Vec3(0.0f, -viewport_height, 0.0f);
+
+const Vec3 pixel_delta_u = viewport_u / pixel_width;
+const Vec3 pixel_delta_v = viewport_v / pixel_height;
+
+const Vec3 viewport_upper_left = camera_center -
+                                 Vec3(0.0f, 0.0f, focal_length) -
+                                 viewport_u / 2 - viewport_v / 2;
+const Vec3 pixel00_loc =
+    viewport_upper_left + 0.5f * (pixel_delta_u + pixel_delta_v);
 const int image_buffer_size = pixel_width * pixel_height;
 size_t image_buffer_byte_size = image_buffer_size * sizeof(Vec3);
 
-__global__ void GreenRedRender(Vec3* image_buffer, int width, int height) {
+// compute Moller Triangle Intersection
+__device__ bool RayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
+                                      Vec3& intersection) {
+    const float epsilon = 1.19209e-07f;
+
+    Vec3 edge1 = triangle.edge0();
+    Vec3 edge2 = triangle.edge1();
+    Vec3 ray_cross_e2 = cross(ray.direction(), edge2);
+    float determinant = dot(edge1, ray_cross_e2);
+
+    // for parallel to triangle
+    if (determinant > -epsilon && determinant < epsilon) {
+        return false;
+    }
+
+    float inv_determinant = 1.0f / determinant;
+    Vec3 s = ray.origin() - triangle.vertex0();
+    float u = inv_determinant * dot(s, ray_cross_e2);
+
+    // no nuggies
+    if ((u < 0 && abs(u) > epsilon) || (u > 1 && abs(u - 1) > epsilon)) {
+        return false;
+    }
+
+    Vec3 s_cross_e1 = cross(s, edge1);
+    float v = inv_determinant * dot(ray.direction(), s_cross_e1);
+
+    if ((v < 0 && abs(v) > epsilon) ||
+        (u + v > 1 && abs(u + v - 1) > epsilon)) {
+        return false;
+    }
+
+    // compute t to find interesection point
+    float t = inv_determinant * dot(edge2, s_cross_e1);
+
+    if (t > epsilon) {
+        intersection = ray.origin() + ray.direction() * t;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// alpha blending with precise method
+__device__ Vec3 RayColor(const Ray& ray) {
+    Triangle3 triangle(Vec3(0.0f, 0.0f, -1.0f), Vec3(-1.0f, -1.0f, -1.0f),
+                               Vec3(1.0f, -1.0f, -1.0f));
+    Vec3 intersection;
+    if (RayIntersectsTriangle(ray, triangle, intersection)) {
+        return Vec3(1.0f, 0.0f, 0.0f);  // red for now... later we use normals
+    }
+    Vec3 unit_direction = unit_vector(ray.direction());
+    float alpha = 0.5f * (unit_direction.y() + 1.0);  // y = [-1,1] to y = [0,1]
+    // lerp between white (1, 1, 1) to sky_blue (0.5, 0.7, 1)
+    return (1.0f - alpha) * Vec3(1.0f, 1.0f, 1.0f) +
+           alpha * Vec3(0.5f, 0.7f, 1.0f);
+}
+
+__global__ void GreenRedRender(Vec3* image_buffer, int width, int height,
+                               Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
+                               Vec3 camera_origin) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     if (col < width && row < height) {
@@ -23,8 +104,14 @@ __global__ void GreenRedRender(Vec3* image_buffer, int width, int height) {
         // image_buffer[pixel_idx] = float(col) / float(width);       // Red
         // image_buffer[pixel_idx + 1] = float(row) / float(height);  // Green
         // image_buffer[pixel_idx + 2] = 0.0f;                        // Blue
-        image_buffer[pixel_idx] =
-            Vec3(float(col) / float(width), float(row) / float(height), 0.0f);
+        Vec3 pixel_center = pixel00_loc + (col * delta_u) + (row * delta_v);
+        Vec3 ray_direction = pixel_center - camera_origin;
+        // image_buffer[pixel_idx] =
+        //     Vec3(float(col) / float(width), float(row) / float(height),
+        //     0.0f);
+        Ray ray(camera_origin, ray_direction);
+        Vec3 pixel_color = RayColor(ray);
+        image_buffer[pixel_idx] = pixel_color;
     }
 }
 
@@ -33,23 +120,6 @@ void WriteToPPM(const char* filename, Vec3* image_buffer, int width,
                 int height);
 int main() {
     Timer timer;
-    float vec1_arr[TEST_SIZE] = {1.0, 2.0, 3.0, 4.0};
-    float vec2_arr[TEST_SIZE] = {7.0, 3.0, -1.0, 8.0};
-
-    VecN<float>* float_vec1 = new VecN<float>(TEST_SIZE, vec1_arr);
-    VecN<float>* float_vec2 = new VecN<float>(TEST_SIZE, vec2_arr);
-    VecN<float>* result_vec = float_vec1->deviceAdd(float_vec2);
-
-    std::cout << "Addition:" << std::endl;
-    int N = result_vec->N;
-    float* contents = result_vec->pv;
-    for (int i = 0; i < N; i++) {
-        std::cout << i << ": " << contents[i] << std::endl;
-    }
-
-    std::cout << "Dot Product:" << std::endl;
-    std::cout << float_vec1->deviceDot(float_vec2) << std::endl;
-
     // cuda stuff
     timer.start("Memory Allocation on GPU");
     Vec3* image_buffer_h = new Vec3[image_buffer_size]();
@@ -66,8 +136,9 @@ int main() {
     dim3 block_size(16, 16);
     dim3 grid_size((pixel_width + block_size.x - 1) / block_size.x,
                    (pixel_height + block_size.y - 1) / block_size.y);
-    GreenRedRender<<<grid_size, block_size>>>(image_buffer_d, pixel_width,
-                                              pixel_height);
+    GreenRedRender<<<grid_size, block_size>>>(
+        image_buffer_d, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
+        pixel_delta_v, camera_center);
     cudaDeviceSynchronize();
     timer.stop();
 
