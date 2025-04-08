@@ -23,7 +23,6 @@ debug/compile_commands.json
 release/compile_commands.json
 *.so
 
-crt
-
-## just my build dir  
 build
+crt
+lib*
