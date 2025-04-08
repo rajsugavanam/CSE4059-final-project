@@ -1,5 +1,5 @@
-# Wow! I'm so evil for requiring 4.0!
-cmake_minimum_required(VERSION 4.0)
+# Wow! I'm so evil for requiring 4.0! ... sorry we have to use 3.30
+cmake_minimum_required(VERSION 3.30)
 
 project(cuda_ray_tracer LANGUAGES CXX CUDA)
 
