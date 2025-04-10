@@ -80,12 +80,18 @@ __device__ bool RayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
 }
 
 // alpha blending with precise method
+// normal map works for now... changing one z coord of triangle will correctly map the color!
 __device__ Vec3 RayColor(const Ray& ray) {
-    Triangle3 triangle(Vec3(0.0f, 0.0f, -1.0f), Vec3(-1.0f, -1.0f, -1.0f),
-                               Vec3(1.0f, -1.0f, -1.0f));
+    Triangle3 triangle(Vec3(0.0f, 0.5f, -1.0f), // top  
+                        Vec3(0.5f, -0.5f, -1.0f), // right
+                        Vec3(-0.5f, -0.5f, -1.0f)); // left
     Vec3 intersection;
     if (RayIntersectsTriangle(ray, triangle, intersection)) {
-        return Vec3(1.0f, 0.0f, 0.0f);  // red for now... later we use normals
+        // return Vec3(1.0f, 0.0f, 0.0f);  // red for now... later we use normals
+        Vec3 normal = cross(triangle.edge0(), triangle.edge1()); // we can probably place this moller code, depends on obj stuff
+        normal = unit_vector(-normal); // the normal is pointing backwards rn...
+        return 0.5f * Vec3(normal.x() + 1.0f, normal.y() + 1.0f,
+                              normal.z() + 1.0f);
     }
     Vec3 unit_direction = unit_vector(ray.direction());
     float alpha = 0.5f * (unit_direction.y() + 1.0);  // y = [-1,1] to y = [0,1]
@@ -94,30 +100,46 @@ __device__ Vec3 RayColor(const Ray& ray) {
            alpha * Vec3(0.5f, 0.7f, 1.0f);
 }
 
-__global__ void GreenRedRender(Vec3* image_buffer, int width, int height,
+__global__ void RayRender(Vec3* image_buffer, int width, int height,
                                Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
                                Vec3 camera_origin) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     if (col < width && row < height) {
-        int pixel_idx = (row * width + col);  // 3 channels (RGB)
-        // image_buffer[pixel_idx] = float(col) / float(width);       // Red
-        // image_buffer[pixel_idx + 1] = float(row) / float(height);  // Green
-        // image_buffer[pixel_idx + 2] = 0.0f;                        // Blue
+        int pixel_idx = row * width + col;  // 3 channels (RGB)
+
         Vec3 pixel_center = pixel00_loc + (col * delta_u) + (row * delta_v);
         Vec3 ray_direction = pixel_center - camera_origin;
-        // image_buffer[pixel_idx] =
-        //     Vec3(float(col) / float(width), float(row) / float(height),
-        //     0.0f);
+    
         Ray ray(camera_origin, ray_direction);
         Vec3 pixel_color = RayColor(ray);
         image_buffer[pixel_idx] = pixel_color;
     }
 }
 
+__global__ void GreenRedRender(Vec3* image_buffer, int width, int height,
+                               Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
+                               Vec3 camera_origin) {
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    if (col < width && row < height) {
+        // int pixel_idx = (row * width + col) * 3;  // 3 channels (RGB)
+        // image_buffer[pixel_idx] = float(col) / float(width);       // Red
+        // image_buffer[pixel_idx + 1] = float(row) / float(height);  // Green
+        // image_buffer[pixel_idx + 2] = 0.5f;                         // Blue
+
+        // each thread computes all 3 channels
+        int pixel_idx = row * width + col;
+        image_buffer[pixel_idx] = Vec3(float(col) / float(width),
+                                      float(row) / float(height), 0.5f);
+
+    }
+}
+
 // Fucntion declaserioansen
 void WriteToPPM(const char* filename, Vec3* image_buffer, int width,
                 int height);
+
 int main() {
     Timer timer;
     // cuda stuff
@@ -136,7 +158,7 @@ int main() {
     dim3 block_size(16, 16);
     dim3 grid_size((pixel_width + block_size.x - 1) / block_size.x,
                    (pixel_height + block_size.y - 1) / block_size.y);
-    GreenRedRender<<<grid_size, block_size>>>(
+    RayRender<<<grid_size, block_size>>>(
         image_buffer_d, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
         pixel_delta_v, camera_center);
     cudaDeviceSynchronize();
