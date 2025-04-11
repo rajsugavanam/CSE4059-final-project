@@ -42,3 +42,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC src)
 # LINK LIBRARIES ---------------------
 target_link_libraries(crt PUBLIC cudamath)
 # ------------------------------------
+
+# OTHER PROPERTIES -------------------
+# set_target_properties(crt PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+# ------------------------------------
+

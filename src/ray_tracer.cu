@@ -5,11 +5,11 @@
 #include <math/VecN.cuh>
 // #include <math/vec3.cuh>
 #include <ostream>
-
 #include "ray.cuh"
 #include "timer.h"
 #include "triangle3.cuh"
 #include "vec3.cuh"
+#include "ObjReader.cuh"
 
 // perhaps move all this to a struct...
 const float aspect_ratio = 16.0f / 9.0f;
@@ -158,7 +158,7 @@ __global__ void greenRedRender(Vec3* image_buffer, int width, int height,
 void writeToPPM(const char* filename, Vec3* image_buffer, int width,
                 int height);
 
-void shittyMain() {
+int shittyMain() {
     Timer timer;
     // ========================
     // ===== MEMORY TRAIN =====
@@ -231,16 +231,38 @@ void shittyMain() {
     delete[] triangle_mesh_h;
     cudaFree(image_buffer_d);
     cudaFree(triangle_mesh_d);
+
+    return 0;
 }
 
-void notShittyMain() {
+int notShittyMain() {
+    ObjReader reader = ObjReader("../../assets/sphere.obj");
+    reader.readModel();
+    Model model = reader.parsedModel;
 
+    if (model.modelFaces.empty()) {
+        return 1;
+    }
+
+    Face* faces_h = model.modelFaces.data();
+    Face* faces_d;
+    size_t size = model.modelFaces.size();
+
+    size_t facesMemSize = size*sizeof(Face);
+    cudaMalloc(&faces_d, facesMemSize);
+    cudaMemcpy(faces_d, faces_h, facesMemSize, cudaMemcpyHostToDevice);
+
+    // kernel
+
+    cudaFree(faces_d);
+
+    return 0;
 }
 
 int main() {
     // shittyMain();
-    notShittyMain();
-    return 0;
+    return notShittyMain();
+    // return 0;
 }
 
 void writeToPPM(const char* filename, Vec3* image_buffer, int pixel_width,

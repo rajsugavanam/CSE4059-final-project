@@ -9,7 +9,8 @@ class Face {
         const Triangle3 triFace;
         const Norm3 vertexNormals;
 
-        Face(const Triangle3 triFace, const Norm3 vertexNormals);
+        // Face(const Triangle3 triFace, const Norm3 vertexNormals);
+        Face(const Triangle3 triFace, const Norm3 vertexNormals) : triFace{ triFace }, vertexNormals{ vertexNormals } {}
 };
 
 class Model {
@@ -18,7 +19,7 @@ class Model {
         // std::vector<Vec3> modelVertices;
         // std::vector<Vec3> modelNormals;
 
-    Model();
+        Model() : modelFaces(std::vector<Face>()) {}
 };
 
 #endif
