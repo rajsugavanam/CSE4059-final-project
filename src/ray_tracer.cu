@@ -158,7 +158,7 @@ __global__ void greenRedRender(Vec3* image_buffer, int width, int height,
 void writeToPPM(const char* filename, Vec3* image_buffer, int width,
                 int height);
 
-int main() {
+void shittyMain() {
     Timer timer;
     // ========================
     // ===== MEMORY TRAIN =====
@@ -231,7 +231,15 @@ int main() {
     delete[] triangle_mesh_h;
     cudaFree(image_buffer_d);
     cudaFree(triangle_mesh_d);
+}
 
+void notShittyMain() {
+
+}
+
+int main() {
+    // shittyMain();
+    notShittyMain();
     return 0;
 }
 
