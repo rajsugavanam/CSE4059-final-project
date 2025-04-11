@@ -2,6 +2,7 @@
 #define TRIANGLE_CUH
 
 #include "vec3.cuh"
+
 class Triangle3 {
    public:
     __host__ __device__ Triangle3()
@@ -21,5 +22,6 @@ class Triangle3 {
    private:
     Vec3 vertex0_, vertex1_, vertex2_;
 };
+using Norm3 = Triangle3; // type alias
 
 #endif
