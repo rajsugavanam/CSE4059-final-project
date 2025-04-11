@@ -34,10 +34,11 @@ const Vec3 viewport_upper_left = camera_center -
 const Vec3 pixel00_loc =
     viewport_upper_left + 0.5f * (pixel_delta_u + pixel_delta_v);
 const int image_buffer_size = pixel_width * pixel_height;
-size_t image_buffer_byte_size = image_buffer_size * sizeof(Vec3);
+const size_t image_buffer_byte_size = image_buffer_size * sizeof(Vec3);
 
-// compute Moller Triangle Intersection
-__device__ bool RayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
+// Möller–Trumbore intersection algorithm
+// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+__device__ bool rayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
                                       Vec3& intersection) {
     const float epsilon = 1.19209e-07f;
 
@@ -80,29 +81,47 @@ __device__ bool RayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
 }
 
 // alpha blending with precise method
-// normal map works for now... changing one z coord of triangle will correctly map the color!
-__device__ Vec3 RayColor(const Ray& ray) {
-    Triangle3 triangle(Vec3(0.0f, 0.5f, -1.0f), // top  
-                        Vec3(0.5f, -0.5f, -1.0f), // right
-                        Vec3(-0.5f, -0.5f, -1.0f)); // left
-    Vec3 intersection;
-    if (RayIntersectsTriangle(ray, triangle, intersection)) {
-        // return Vec3(1.0f, 0.0f, 0.0f);  // red for now... later we use normals
-        Vec3 normal = cross(triangle.edge0(), triangle.edge1()); // we can probably place this moller code, depends on obj stuff
-        normal = unit_vector(-normal); // the normal is pointing backwards rn...
-        return 0.5f * Vec3(normal.x() + 1.0f, normal.y() + 1.0f,
-                              normal.z() + 1.0f);
+// normal map works for now... changing one z coord of triangle will correctly
+// map the color!
+__device__ Vec3 rayColor(const Ray& ray, Triangle3* triangles,
+                         int num_triangle) {
+    // Triangle3 triangle(Vec3(0.0f, 0.5f, -1.0f),     // top
+    //                    Vec3(0.5f, -0.5f, -1.0f),    // right
+    //                    Vec3(-0.5f, -0.5f, -1.0f));  // left
+    // Vec3 intersection;
+    Vec3 result{};
+    for (int tri = 0; tri < num_triangle; tri++) {
+        Triangle3 triangle = triangles[tri];
+        Vec3 intersection;
+        if (rayIntersectsTriangle(
+                ray, triangle,
+                intersection)) {  // return Vec3(1.0f, 0.0f, 0.0f); //
+                                  // red for now... later we use
+            // normals
+            Vec3 normal =
+                cross(triangle.edge0(),
+                      triangle.edge1());  // we can probably place this moller
+                                          // code, depends on obj stuff
+            normal =
+                unit_vector(-normal);  // the normal is pointing backwards rn...
+            result = 0.5f * Vec3(normal.x() + 1.0f, normal.y() + 1.0f,
+                                 normal.z() + 1.0f);
+            break;
+        }
+        Vec3 unit_direction = unit_vector(ray.direction());
+        float alpha =
+            0.5f * (unit_direction.y() + 1.0);  // y = [-1,1] to y = [0,1]
+        // lerp between white (1, 1, 1) to sky_blue (0.5, 0.7, 1)
+        result = (1.0f - alpha) * Vec3(1.0f, 1.0f, 1.0f) +
+                 alpha * Vec3(0.5f, 0.7f, 1.0f);
     }
-    Vec3 unit_direction = unit_vector(ray.direction());
-    float alpha = 0.5f * (unit_direction.y() + 1.0);  // y = [-1,1] to y = [0,1]
-    // lerp between white (1, 1, 1) to sky_blue (0.5, 0.7, 1)
-    return (1.0f - alpha) * Vec3(1.0f, 1.0f, 1.0f) +
-           alpha * Vec3(0.5f, 0.7f, 1.0f);
+    return result;
 }
 
-__global__ void RayRender(Vec3* image_buffer, int width, int height,
-                               Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
-                               Vec3 camera_origin) {
+__global__ void rayRender(Vec3* image_buffer, int width, int height,
+                          Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
+                          Vec3 camera_origin, Triangle3* triangle_mesh,
+                          int num_triangles) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     if (col < width && row < height) {
@@ -110,14 +129,14 @@ __global__ void RayRender(Vec3* image_buffer, int width, int height,
 
         Vec3 pixel_center = pixel00_loc + (col * delta_u) + (row * delta_v);
         Vec3 ray_direction = pixel_center - camera_origin;
-    
+
         Ray ray(camera_origin, ray_direction);
-        Vec3 pixel_color = RayColor(ray);
+        Vec3 pixel_color = rayColor(ray, triangle_mesh, num_triangles);
         image_buffer[pixel_idx] = pixel_color;
     }
 }
 
-__global__ void GreenRedRender(Vec3* image_buffer, int width, int height,
+__global__ void greenRedRender(Vec3* image_buffer, int width, int height,
                                Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
                                Vec3 camera_origin) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -130,66 +149,99 @@ __global__ void GreenRedRender(Vec3* image_buffer, int width, int height,
 
         // each thread computes all 3 channels
         int pixel_idx = row * width + col;
-        image_buffer[pixel_idx] = Vec3(float(col) / float(width),
-                                      float(row) / float(height), 0.5f);
-
+        image_buffer[pixel_idx] =
+            Vec3(float(col) / float(width), float(row) / float(height), 0.5f);
     }
 }
 
 // Fucntion declaserioansen
-void WriteToPPM(const char* filename, Vec3* image_buffer, int width,
+void writeToPPM(const char* filename, Vec3* image_buffer, int width,
                 int height);
 
 int main() {
     Timer timer;
-    // cuda stuff
+    // ========================
+    // ===== MEMORY TRAIN =====
+    // ========================
     timer.start("Memory Allocation on GPU");
-    Vec3* image_buffer_h = new Vec3[image_buffer_size]();
+    // init rgb image output buffer
+    Vec3* image_buffer_h{new Vec3[image_buffer_size]()};
     Vec3* image_buffer_d;
-    std::cout << "Vec3 size: " << sizeof(Vec3) << std::endl;
-    // float* image_buffer_h{new float[image_buffer_size * 3]{}};
-    // float* image_buffer_d;
+
+    // init triangle mesh buffer
+    unsigned int num_triangles{3};
+    Triangle3* triangle_mesh_h{
+        new Triangle3[num_triangles]{{
+                                         // c tr
+                                         Vec3(0.0f, 0.5f, -1.0f),   // top
+                                         Vec3(0.5f, -0.5f, -1.0f),  // right
+                                         Vec3(-0.5f, -0.5f, -1.0f)  // l
+                                     },
+                                     {
+                                         // r tri
+                                         Vec3(0.0f, 0.5f, -1.0f),   // t
+                                         Vec3(1.5f, -0.5f, -2.0f),  // r
+                                         Vec3(0.5f, -0.5f, -1.0f)   // l
+                                     },                             // l
+                                     {
+                                         // l tri
+                                         Vec3(0.0f, 0.5f, -1.0f),    // t
+                                         Vec3(-0.5f, -0.5f, -1.0f),  // r
+                                         Vec3(-1.5f, -0.5f, -2.0f)   // l
+                                     }}};
+    Triangle3* triangle_mesh_d;
+    // malloc and cpy
     cudaMalloc((void**)&image_buffer_d, image_buffer_byte_size);
+    cudaMalloc((void**)&triangle_mesh_d, sizeof(Triangle3) * num_triangles);
     cudaMemcpy(image_buffer_d, image_buffer_h, image_buffer_byte_size,
                cudaMemcpyHostToDevice);
+    cudaMemcpy(triangle_mesh_d, triangle_mesh_h,
+               sizeof(Triangle3) * num_triangles, cudaMemcpyHostToDevice);
     timer.stop();
 
+    // ===========================
+    // ===== RUNNING ON GPU ======
+    // ===========================
     timer.start("Kernel Launching");
     dim3 block_size(16, 16);
     dim3 grid_size((pixel_width + block_size.x - 1) / block_size.x,
                    (pixel_height + block_size.y - 1) / block_size.y);
-    RayRender<<<grid_size, block_size>>>(
+    rayRender<<<grid_size, block_size>>>(
         image_buffer_d, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
-        pixel_delta_v, camera_center);
+        pixel_delta_v, camera_center, triangle_mesh_d, num_triangles);
     cudaDeviceSynchronize();
     timer.stop();
 
+    // ============================
+    // ===== CPU IMAGE WRITER =====
+    // ============================
     timer.start("Copying back to host");
     cudaMemcpy(image_buffer_h, image_buffer_d, image_buffer_byte_size,
                cudaMemcpyDeviceToHost);
     timer.stop();
 
     timer.start("Outputting to PPM file");
-    WriteToPPM("outout.ppm", image_buffer_h, pixel_width, pixel_height);
+    writeToPPM("outout.ppm", image_buffer_h, pixel_width, pixel_height);
     timer.stop();
 
-    // free mem
+    // ==========================
+    // ===== MEMORY FREEDOM =====
+    // ==========================
     delete[] image_buffer_h;
+    delete[] triangle_mesh_h;
     cudaFree(image_buffer_d);
+    cudaFree(triangle_mesh_d);
 
     return 0;
 }
 
-void WriteToPPM(const char* filename, Vec3* image_buffer, int pixel_width,
+void writeToPPM(const char* filename, Vec3* image_buffer, int pixel_width,
                 int pixel_height) {
     std::ofstream os(filename);
     os << "P3\n" << pixel_width << " " << pixel_height << "\n255\n";
     for (int j = 0; j < pixel_height; j++) {
         for (int i = 0; i < pixel_width; i++) {
             int pixel_idx = (j * pixel_width + i);
-            // int r = static_cast<int>(image_buffer[pixel_idx] * 255.999);
-            // int g = static_cast<int>(image_buffer[pixel_idx + 1] * 255.999);
-            // int b = static_cast<int>(image_buffer[pixel_idx + 2] * 255.999);
             int r = static_cast<int>(image_buffer[pixel_idx].x() * 255.999);
             int g = static_cast<int>(image_buffer[pixel_idx].y() * 255.999);
             int b = static_cast<int>(image_buffer[pixel_idx].z() * 255.999);
