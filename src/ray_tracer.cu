@@ -170,25 +170,29 @@ int shittyMain() {
 
     // init triangle mesh buffer
     unsigned int num_triangles{3};
-    Triangle3* triangle_mesh_h{
-        new Triangle3[num_triangles]{{
-                                         // c tr
-                                         Vec3(0.0f, 0.5f, -1.0f),   // top
-                                         Vec3(0.5f, -0.5f, -1.0f),  // right
-                                         Vec3(-0.5f, -0.5f, -1.0f)  // l
-                                     },
-                                     {
-                                         // r tri
-                                         Vec3(0.0f, 0.5f, -1.0f),   // t
-                                         Vec3(1.5f, -0.5f, -2.0f),  // r
-                                         Vec3(0.5f, -0.5f, -1.0f)   // l
-                                     },                             // l
-                                     {
-                                         // l tri
-                                         Vec3(0.0f, 0.5f, -1.0f),    // t
-                                         Vec3(-0.5f, -0.5f, -1.0f),  // r
-                                         Vec3(-1.5f, -0.5f, -2.0f)   // l
-                                     }}};
+    Triangle3* triangle_mesh_h {
+        new Triangle3[num_triangles]
+        {
+            {
+                // c tr
+                Vec3(0.0f, 0.5f, -1.0f),   // top
+                    Vec3(0.5f, -0.5f, -1.0f),  // right
+                    Vec3(-0.5f, -0.5f, -1.0f)  // l
+            },
+            {
+                // r tri
+                Vec3(0.0f, 0.5f, -1.0f),   // t
+                Vec3(1.5f, -0.5f, -2.0f),  // r
+                Vec3(0.5f, -0.5f, -1.0f)   // l
+            },                             // l
+            {
+                // l tri
+                Vec3(0.0f, 0.5f, -1.0f),    // t
+                Vec3(-0.5f, -0.5f, -1.0f),  // r
+                Vec3(-1.5f, -0.5f, -2.0f)   // l
+            }
+        }
+    };
     Triangle3* triangle_mesh_d;
     // malloc and cpy
     cudaMalloc((void**)&image_buffer_d, image_buffer_byte_size);
