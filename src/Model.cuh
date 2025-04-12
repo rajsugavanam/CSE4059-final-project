@@ -4,22 +4,11 @@
 #include <vector>
 #include "triangle3.cuh"
 
-class Face {
-    public:
-        const Triangle3 triFace;
-        const Norm3 vertexNormals;
-
-        // Face(const Triangle3 triFace, const Norm3 vertexNormals);
-        Face(const Triangle3 triFace, const Norm3 vertexNormals) : triFace{ triFace }, vertexNormals{ vertexNormals } {}
-};
-
 class Model {
     public:
-        std::vector<Face> modelFaces;
-        // std::vector<Vec3> modelVertices;
-        // std::vector<Vec3> modelNormals;
+        std::vector<Triangle3> modelTriangles;
 
-        Model() : modelFaces(std::vector<Face>()) {}
+        Model() : modelTriangles(std::vector<Triangle3>()) {}
 };
 
 #endif

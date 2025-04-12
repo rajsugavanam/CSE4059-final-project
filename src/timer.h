@@ -3,9 +3,9 @@
 
 #include <chrono>
 #include <iostream>
-// #include <iomanip>
 #include <string>
-// #include <sstream>
+#include <sstream>
+#include <iomanip>
 
 // Measure time with cool output
 class Timer {
@@ -49,14 +49,6 @@ private:
     };
 
     // ===== Output formatting =====
-    
-    // Buffer size for duration formatting
-    // MAXIMUM TIME: 999,999,999.999 s 
-    // - Stored as "999999999.999 s\0"
-    // - 12 digits + 1 decimal point + 1 space + 1 unitChar + 1 null terminator
-    static constexpr size_t DURATION_BUFFER_SIZE = 16; 
-
-    
     // Apply color to text
     static std::string colorize(const std::string& text, const char* color) {
         return std::string(color) + text + Colors::RESET;
@@ -78,17 +70,17 @@ private:
         const double milliseconds = nanoseconds / 1000000.0;
         const double seconds = milliseconds / 1000.0;
         
-        char buffer[DURATION_BUFFER_SIZE]{};
+        std::ostringstream oss;
         
         if (seconds >= 1.0) {
-            snprintf(buffer, sizeof(buffer), "%.3f s", seconds);
+            oss << std::fixed << std::setprecision(3) << seconds << " s";
         } else if (milliseconds >= 1.0) {
-            snprintf(buffer, sizeof(buffer), "%.3f ms", milliseconds);
+            oss << std::fixed << std::setprecision(3) << milliseconds << " ms";
         } else {
-            snprintf(buffer, sizeof(buffer), "%d ns", static_cast<int>(nanoseconds));
+            oss << static_cast<int>(nanoseconds) << " ns";
         }
         
-        return std::string{buffer};
+        return oss.str();
     }
 };
 #endif

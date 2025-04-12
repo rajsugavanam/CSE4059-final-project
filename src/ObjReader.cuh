@@ -106,25 +106,18 @@ class ObjReader {
                     int vn2Idx = std::stoi(vn2)-1;
                     int vn3Idx = std::stoi(vn3)-1;
 
-                    Triangle3 faceTri = Triangle3(
+                    Triangle3 triangle = Triangle3(
                             modelVertices.at(v1Idx),
                             modelVertices.at(v2Idx),
-                            modelVertices.at(v3Idx)
-                            );
-                    Norm3 vertexNormals = Norm3(
+                            modelVertices.at(v3Idx),
                             modelNormals.at(vn1Idx),
                             modelNormals.at(vn2Idx),
                             modelNormals.at(vn3Idx)
                             );
-                    Face face = Face(faceTri, vertexNormals);
-                    parsedModel.modelFaces.push_back(face);
-                    // std::cout << "[DEBUG, ObjReader::readModel()]: Added face with face indices "
-                    //     << v1Idx << ", "
-                    //     << v2Idx << ", "
-                    //     << v3Idx << " from string " << currLine << std::endl;
+                    parsedModel.modelTriangles.push_back(triangle);
                 }
             }
-}
+        }
 };
 
 #endif

@@ -2,12 +2,12 @@
 
 #include <fstream>
 #include <iostream>
-#include <math/VecN.cuh>
-// #include <math/vec3.cuh>
 #include <ostream>
+#include <string>
+
+#include "crt.cuh"
 #include "ray.cuh"
 #include "timer.h"
-#include "triangle3.cuh"
 #include "vec3.cuh"
 #include "ObjReader.cuh"
 
@@ -19,7 +19,7 @@ const float focal_length = 1.0f;
 const float viewport_height = 2.0f;
 const float viewport_width =
     viewport_height * (float(pixel_width) / pixel_height);
-const Vec3 camera_center = Vec3(0.0f, 0.0f, 0.0f);
+const Vec3 camera_center = Vec3(0.0f, -6.0f, 7.0f); // the sphere is at a weird location
 
 // viewport vector
 const Vec3 viewport_u = Vec3(viewport_width, 0.0f, 0.0f);
@@ -36,130 +36,45 @@ const Vec3 pixel00_loc =
 const int image_buffer_size = pixel_width * pixel_height;
 const size_t image_buffer_byte_size = image_buffer_size * sizeof(Vec3);
 
-// Möller–Trumbore intersection algorithm
-// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 __device__ bool rayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
-                                      Vec3& intersection) {
-    const float epsilon = 1.19209e-07f;
+                                      Vec3& intersection, float& u, float& v); 
 
-    Vec3 edge1 = triangle.edge0();
-    Vec3 edge2 = triangle.edge1();
-    Vec3 ray_cross_e2 = cross(ray.direction(), edge2);
-    float determinant = dot(edge1, ray_cross_e2);
-
-    // for parallel to triangle
-    if (determinant > -epsilon && determinant < epsilon) {
-        return false;
-    }
-
-    float inv_determinant = 1.0f / determinant;
-    Vec3 s = ray.origin() - triangle.vertex0();
-    float u = inv_determinant * dot(s, ray_cross_e2);
-
-    // no nuggies
-    if ((u < 0 && abs(u) > epsilon) || (u > 1 && abs(u - 1) > epsilon)) {
-        return false;
-    }
-
-    Vec3 s_cross_e1 = cross(s, edge1);
-    float v = inv_determinant * dot(ray.direction(), s_cross_e1);
-
-    if ((v < 0 && abs(v) > epsilon) ||
-        (u + v > 1 && abs(u + v - 1) > epsilon)) {
-        return false;
-    }
-
-    // compute t to find interesection point
-    float t = inv_determinant * dot(edge2, s_cross_e1);
-
-    if (t > epsilon) {
-        intersection = ray.origin() + ray.direction() * t;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-// alpha blending with precise method
-// normal map works for now... changing one z coord of triangle will correctly
-// map the color!
 __device__ Vec3 rayColor(const Ray& ray, Triangle3* triangles,
-                         int num_triangle) {
-    // Triangle3 triangle(Vec3(0.0f, 0.5f, -1.0f),     // top
-    //                    Vec3(0.5f, -0.5f, -1.0f),    // right
-    //                    Vec3(-0.5f, -0.5f, -1.0f));  // left
-    // Vec3 intersection;
-    Vec3 result{};
-    for (int tri = 0; tri < num_triangle; tri++) {
-        Triangle3 triangle = triangles[tri];
-        Vec3 intersection;
-        if (rayIntersectsTriangle(
-                ray, triangle,
-                intersection)) {  // return Vec3(1.0f, 0.0f, 0.0f); //
-                                  // red for now... later we use
-            // normals
-            Vec3 normal =
-                cross(triangle.edge0(),
-                      triangle.edge1());  // we can probably place this moller
-                                          // code, depends on obj stuff
-            normal =
-                unit_vector(-normal);  // the normal is pointing backwards rn...
-            result = 0.5f * Vec3(normal.x() + 1.0f, normal.y() + 1.0f,
-                                 normal.z() + 1.0f);
-            break;
-        }
-        Vec3 unit_direction = unit_vector(ray.direction());
-        float alpha =
-            0.5f * (unit_direction.y() + 1.0);  // y = [-1,1] to y = [0,1]
-        // lerp between white (1, 1, 1) to sky_blue (0.5, 0.7, 1)
-        result = (1.0f - alpha) * Vec3(1.0f, 1.0f, 1.0f) +
-                 alpha * Vec3(0.5f, 0.7f, 1.0f);
-    }
-    return result;
-}
+                         int num_triangle);
 
 __global__ void rayRender(Vec3* image_buffer, int width, int height,
                           Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
                           Vec3 camera_origin, Triangle3* triangle_mesh,
-                          int num_triangles) {
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    if (col < width && row < height) {
-        int pixel_idx = row * width + col;  // 3 channels (RGB)
-
-        Vec3 pixel_center = pixel00_loc + (col * delta_u) + (row * delta_v);
-        Vec3 ray_direction = pixel_center - camera_origin;
-
-        Ray ray(camera_origin, ray_direction);
-        Vec3 pixel_color = rayColor(ray, triangle_mesh, num_triangles);
-        image_buffer[pixel_idx] = pixel_color;
-    }
-}
+                          int num_triangles);
 
 __global__ void greenRedRender(Vec3* image_buffer, int width, int height,
                                Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
-                               Vec3 camera_origin) {
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    if (col < width && row < height) {
-        // int pixel_idx = (row * width + col) * 3;  // 3 channels (RGB)
-        // image_buffer[pixel_idx] = float(col) / float(width);       // Red
-        // image_buffer[pixel_idx + 1] = float(row) / float(height);  // Green
-        // image_buffer[pixel_idx + 2] = 0.5f;                         // Blue
-
-        // each thread computes all 3 channels
-        int pixel_idx = row * width + col;
-        image_buffer[pixel_idx] =
-            Vec3(float(col) / float(width), float(row) / float(height), 0.5f);
-    }
-}
+                               Vec3 camera_origin);
 
 // Fucntion declaserioansen
 void writeToPPM(const char* filename, Vec3* image_buffer, int width,
                 int height);
 
-int shittyMain() {
+int main() {
+    // ===================
+    // ===== THE OBJ =====
+    // ===================
     Timer timer;
+    timer.start("Loading OBJ file");
+    
+    // abs path to obj using PROJECT_ROOT macro in cmake 
+    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/sphere.obj");
+    
+    reader.readModel();
+    Model model = reader.parsedModel;
+
+    // Check for empty triangles instead of faces
+    if (model.modelTriangles.empty()) {
+        return 1;
+    }
+    timer.stop();
+
+
     // ========================
     // ===== MEMORY TRAIN =====
     // ========================
@@ -168,39 +83,17 @@ int shittyMain() {
     Vec3* image_buffer_h{new Vec3[image_buffer_size]()};
     Vec3* image_buffer_d;
 
-    // init triangle mesh buffer
-    unsigned int num_triangles{3};
-    Triangle3* triangle_mesh_h {
-        new Triangle3[num_triangles]
-        {
-            {
-                // c tr
-                Vec3(0.0f, 0.5f, -1.0f),   // top
-                    Vec3(0.5f, -0.5f, -1.0f),  // right
-                    Vec3(-0.5f, -0.5f, -1.0f)  // l
-            },
-            {
-                // r tri
-                Vec3(0.0f, 0.5f, -1.0f),   // t
-                Vec3(1.5f, -0.5f, -2.0f),  // r
-                Vec3(0.5f, -0.5f, -1.0f)   // l
-            },                             // l
-            {
-                // l tri
-                Vec3(0.0f, 0.5f, -1.0f),    // t
-                Vec3(-0.5f, -0.5f, -1.0f),  // r
-                Vec3(-1.5f, -0.5f, -2.0f)   // l
-            }
-        }
-    };
-    Triangle3* triangle_mesh_d;
-    // malloc and cpy
+    // load all the triangles
+    Triangle3* triangles_h = model.modelTriangles.data();
+    Triangle3* triangles_d;
+    size_t size = model.modelTriangles.size();
+
+    size_t trianglesMemSize = size*sizeof(Triangle3);
     cudaMalloc((void**)&image_buffer_d, image_buffer_byte_size);
-    cudaMalloc((void**)&triangle_mesh_d, sizeof(Triangle3) * num_triangles);
+    cudaMalloc(&triangles_d, trianglesMemSize);
     cudaMemcpy(image_buffer_d, image_buffer_h, image_buffer_byte_size,
                cudaMemcpyHostToDevice);
-    cudaMemcpy(triangle_mesh_d, triangle_mesh_h,
-               sizeof(Triangle3) * num_triangles, cudaMemcpyHostToDevice);
+    cudaMemcpy(triangles_d, triangles_h, trianglesMemSize, cudaMemcpyHostToDevice);
     timer.stop();
 
     // ===========================
@@ -210,9 +103,12 @@ int shittyMain() {
     dim3 block_size(16, 16);
     dim3 grid_size((pixel_width + block_size.x - 1) / block_size.x,
                    (pixel_height + block_size.y - 1) / block_size.y);
+    
+    // Optimization 5: Add CUDA error checking
     rayRender<<<grid_size, block_size>>>(
         image_buffer_d, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
-        pixel_delta_v, camera_center, triangle_mesh_d, num_triangles);
+        pixel_delta_v, camera_center, triangles_d, size);
+    
     cudaDeviceSynchronize();
     timer.stop();
 
@@ -232,41 +128,10 @@ int shittyMain() {
     // ===== MEMORY FREEDOM =====
     // ==========================
     delete[] image_buffer_h;
-    delete[] triangle_mesh_h;
     cudaFree(image_buffer_d);
-    cudaFree(triangle_mesh_d);
+    cudaFree(triangles_d);
 
     return 0;
-}
-
-int notShittyMain() {
-    ObjReader reader = ObjReader("../../assets/sphere.obj");
-    reader.readModel();
-    Model model = reader.parsedModel;
-
-    if (model.modelFaces.empty()) {
-        return 1;
-    }
-
-    Face* faces_h = model.modelFaces.data();
-    Face* faces_d;
-    size_t size = model.modelFaces.size();
-
-    size_t facesMemSize = size*sizeof(Face);
-    cudaMalloc(&faces_d, facesMemSize);
-    cudaMemcpy(faces_d, faces_h, facesMemSize, cudaMemcpyHostToDevice);
-
-    // kernel
-
-    cudaFree(faces_d);
-
-    return 0;
-}
-
-int main() {
-    // shittyMain();
-    return notShittyMain();
-    // return 0;
 }
 
 void writeToPPM(const char* filename, Vec3* image_buffer, int pixel_width,
