@@ -25,9 +25,11 @@ class ObjReader {
             while( std::getline(file_is, currLine) ) {
                 std::istringstream iss(currLine);
                 std::string word;
-                if (!(iss >> word)) {
-                    throw std::runtime_error("[ERROR, ObjReader::readModel()]: Invalid .obj file!");
-                }
+                iss >> word;
+                // std::cout << word << "\n";
+                // if (!(iss >> word)) {
+                //     throw std::runtime_error("[ERROR, ObjReader::readModel()]: Invalid .obj file!");
+                // }
                 // VERTEX
                 if (word == "v") {
                     float vecX;

@@ -84,9 +84,21 @@ __device__ Vec3 rayColor(const Ray& ray, Triangle3* triangles,
     if (hit_anything) {
         // Normalize only once!
         closest_normal = unit_vector(closest_normal);
-        result = 0.5f * Vec3(closest_normal.x() + 1.0f, 
-                           closest_normal.y() + 1.0f,
-                           closest_normal.z() + 1.0f);
+        // result = 0.5f * Vec3(closest_normal.x() + 1.0f, 
+        //                    closest_normal.y() + 1.0f,
+        //                    closest_normal.z() + 1.0f);
+
+        // TODO: replace with "monte carlo" method for loop thing
+        // simple lambertian diffuse
+        Vec3 light = unit_vector(Vec3(0.0f, 20.0f, 10.0f) - closest_normal);
+        // just whiteCol color for now... use texture norm
+        Vec3 whiteCol = Vec3(1.0f, 1.0f, 1.0f);
+        float cos = dot(closest_normal, light);
+        if (cos < 0.0f) { // not sure if this is needed
+            cos = 0.0f;
+        }
+        result = whiteCol * cos * 0.8f; 
+        // result = Vec3(1.0f, 0.0f, 0.0f);
     } else {
         // Background color when no intersection
         Vec3 unit_direction = unit_vector(ray.direction());

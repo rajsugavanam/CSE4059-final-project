@@ -6,7 +6,7 @@
 #include <string>
 
 #include "crt.cuh"
-#include "ray.cuh"
+// #include "ray.cuh"
 #include "timer.h"
 #include "vec3.cuh"
 #include "ObjReader.cuh"
@@ -19,7 +19,8 @@ const float focal_length = 1.0f;
 const float viewport_height = 2.0f;
 const float viewport_width =
     viewport_height * (float(pixel_width) / pixel_height);
-const Vec3 camera_center = Vec3(0.0f, -6.0f, 7.0f); // the sphere is at a weird location
+// const Vec3 camera_center = Vec3(0.0f, -6.0f, 7.0f); // the sphere is at a weird location
+const Vec3 camera_center = Vec3(0.0f, 10.0f, 20.0f); // the sphere is at a weird location
 
 // viewport vector
 const Vec3 viewport_u = Vec3(viewport_width, 0.0f, 0.0f);
@@ -36,21 +37,6 @@ const Vec3 pixel00_loc =
 const int image_buffer_size = pixel_width * pixel_height;
 const size_t image_buffer_byte_size = image_buffer_size * sizeof(Vec3);
 
-__device__ bool rayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
-                                      Vec3& intersection, float& u, float& v); 
-
-__device__ Vec3 rayColor(const Ray& ray, Triangle3* triangles,
-                         int num_triangle);
-
-__global__ void rayRender(Vec3* image_buffer, int width, int height,
-                          Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
-                          Vec3 camera_origin, Triangle3* triangle_mesh,
-                          int num_triangles);
-
-__global__ void greenRedRender(Vec3* image_buffer, int width, int height,
-                               Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
-                               Vec3 camera_origin);
-
 // Fucntion declaserioansen
 void writeToPPM(const char* filename, Vec3* image_buffer, int width,
                 int height);
@@ -63,7 +49,8 @@ int main() {
     timer.start("Loading OBJ file");
     
     // abs path to obj using PROJECT_ROOT macro in cmake 
-    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/sphere.obj");
+    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/TyDonkeyKR.obj");
+    // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/sphere.obj");
     
     reader.readModel();
     Model model = reader.parsedModel;
@@ -104,7 +91,6 @@ int main() {
     dim3 grid_size((pixel_width + block_size.x - 1) / block_size.x,
                    (pixel_height + block_size.y - 1) / block_size.y);
     
-    // Optimization 5: Add CUDA error checking
     rayRender<<<grid_size, block_size>>>(
         image_buffer_d, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
         pixel_delta_v, camera_center, triangles_d, size);
