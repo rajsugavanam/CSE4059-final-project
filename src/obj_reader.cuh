@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "Model.cuh"
+#include "model.cuh"
 
 class ObjReader {
     private:

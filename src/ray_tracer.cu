@@ -11,7 +11,7 @@
 // #include "ray.cuh"
 #include "timer.h"
 #include "vec3.cuh"
-#include "ObjReader.cuh"
+#include "obj_reader.cuh"
 
 // perhaps move all this to a struct...
 const float aspect_ratio = 16.0f / 9.0f;
