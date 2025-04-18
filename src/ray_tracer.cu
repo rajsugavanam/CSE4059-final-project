@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include <curand_kernel.h>
 
 #include <fstream>
 #include <iostream>
@@ -19,8 +20,11 @@ const float focal_length = 1.0f;
 const float viewport_height = 2.0f;
 const float viewport_width =
     viewport_height * (float(pixel_width) / pixel_height);
+const float camera_x = 0.0f;
+const float camera_y = 0.0f;
+const float camera_z = 0.0f;
 // const Vec3 camera_center = Vec3(0.0f, -6.0f, 7.0f); // the sphere is at a weird location
-const Vec3 camera_center = Vec3(0.0f, 10.0f, 20.0f); // the sphere is at a weird location
+const Vec3 camera_center = Vec3(camera_x, camera_y, camera_z);
 
 // viewport vector
 const Vec3 viewport_u = Vec3(viewport_width, 0.0f, 0.0f);
@@ -49,7 +53,8 @@ int main() {
     timer.start("Loading OBJ file");
     
     // abs path to obj using PROJECT_ROOT macro in cmake 
-    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/TyDonkeyKR.obj");
+    // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/TyDonkeyKR.obj");
+    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/Untitled.obj");
     // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/sphere.obj");
     
     reader.readModel();
@@ -60,6 +65,28 @@ int main() {
         return 1;
     }
     timer.stop();
+
+    //  =================
+    //  ===== WALLS =====
+    //  =================
+    size_t num_walls{1};
+    float z_length = -10.0f;
+    float y_length = -1.0f;
+    float x_length = -z_length * 0.5f;
+    int num_wall_tri = 2;
+    Triangle3* walls_h{new Triangle3[num_wall_tri]{
+            Triangle3{
+                Vec3{-x_length, y_length, z_length},
+                Vec3{x_length, y_length, z_length},
+                Vec3{x_length, y_length, z_length * 1.5f}
+            },
+            Triangle3{
+                Vec3{-x_length, y_length, z_length},
+                Vec3{-x_length, y_length, z_length * 1.5f},
+                Vec3{x_length, y_length, z_length * 1.5f}
+            }
+        }
+    };
 
 
     // ========================
@@ -73,14 +100,26 @@ int main() {
     // load all the triangles
     Triangle3* triangles_h = model.modelTriangles.data();
     Triangle3* triangles_d;
-    size_t size = model.modelTriangles.size();
+    size_t mesh_size = model.modelTriangles.size();
+    size_t trianglesMemSize = mesh_size * sizeof(Triangle3);
+    Triangle3* walls_d;
+    size_t wall_size = 2 * num_walls * sizeof(Triangle3);
+    std::cout << "wall byte size: " << wall_size << "\n"
+             << "Vec3 byte size: " << sizeof(Vec3) << "\n"
+             << "Triangle3 byte size: " << sizeof(Triangle3) << std::endl;
 
-    size_t trianglesMemSize = size*sizeof(Triangle3);
+    // from cuRAND
+    curandState *rngStates_d = 0;
+
+    // malloc state
     cudaMalloc((void**)&image_buffer_d, image_buffer_byte_size);
-    cudaMalloc(&triangles_d, trianglesMemSize);
+    cudaMalloc((void**)&triangles_d, trianglesMemSize);
+    cudaMalloc((void**)&rngStates_d, mesh_size*sizeof(*rngStates_d));
+    cudaMalloc((void**)&walls_d, wall_size);
     cudaMemcpy(image_buffer_d, image_buffer_h, image_buffer_byte_size,
                cudaMemcpyHostToDevice);
     cudaMemcpy(triangles_d, triangles_h, trianglesMemSize, cudaMemcpyHostToDevice);
+    cudaMemcpy(walls_d, walls_h, wall_size, cudaMemcpyHostToDevice);
     timer.stop();
 
     // ===========================
@@ -93,7 +132,7 @@ int main() {
     
     rayRender<<<grid_size, block_size>>>(
         image_buffer_d, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
-        pixel_delta_v, camera_center, triangles_d, size);
+        pixel_delta_v, camera_center, triangles_d, mesh_size, walls_d, num_wall_tri);
     
     cudaDeviceSynchronize();
     timer.stop();
@@ -114,8 +153,11 @@ int main() {
     // ===== MEMORY FREEDOM =====
     // ==========================
     delete[] image_buffer_h;
+    delete[] walls_h;
     cudaFree(image_buffer_d);
     cudaFree(triangles_d);
+    cudaFree(walls_d);
+    cudaFree(rngStates_d);
 
     return 0;
 }

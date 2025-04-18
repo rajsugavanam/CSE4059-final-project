@@ -2,14 +2,25 @@
 #define CRT_CUH
 
 #include <cuda_runtime.h>
+#include <curand_kernel.h>
+#include <cmath>
 #include "vec3.cuh"
 #include "ray.cuh"
 #include "triangle3.cuh"
 
+// coalesced init for RNG
+// __global__ void initRng(curandState *const rngStates, unsigned int width) {
+//     unsigned int col = blockIdx.x * blockDim.x + threadIdx.x;
+//     unsigned int row = blockIdx.y * blockDim.y + threadIdx.y;
+//     unsigned int pixel_idx = row * width + col; 
+//     // you just have to call to initialize the RNG
+//     curand_init(1337, pixel_idx, 0, &rngStates[pixel_idx]);
+// }
+
 // Möller–Trumbore intersection algorithm
 // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 __device__ bool rayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
-                                      Vec3& intersection, float& u, float& v) {
+                                      Vec3& intersection, float& u, float& v, float& t) {
     const float epsilon = 1.19209e-07f; // float32 machine epsilon ish
 
     Vec3 edge1 = triangle.edge0();
@@ -40,7 +51,7 @@ __device__ bool rayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
     }
 
     // compute t to find intersection point
-    float t = inv_determinant * dot(edge2, s_cross_e1);
+    t = inv_determinant * dot(edge2, s_cross_e1);
 
     if (t > epsilon) {
         intersection = ray.origin() + ray.direction() * t;
@@ -49,45 +60,87 @@ __device__ bool rayIntersectsTriangle(const Ray& ray, const Triangle3& triangle,
     return false;
 }
 
+// find closest intersecting triangle within a mesh
+__device__ int closestTriangleIdx(const Ray& ray, const Triangle3* triangle_mesh, int num_triangles) {
+    Triangle3 curr_tri;
+    float closest_distance = INFINITY;
+    int closest_triangle_idx = num_triangles; // nonexisting tri for no hit;
+    Vec3 intersection;
+    float u, v, t;
+
+    for (int tri_idx = 0; tri_idx < num_triangles; tri_idx++) {
+        curr_tri = triangle_mesh[tri_idx];
+        if (rayIntersectsTriangle(ray, curr_tri, intersection, u, v, t)) {
+            // t = -intersection.z();
+            if (t < closest_distance) {
+                closest_distance = t;
+                closest_triangle_idx = tri_idx;
+            }
+        }
+    }
+    return closest_triangle_idx;
+}
 // alpha blending with precise method
 // normal map works for now... changing one z coord of triangle will correctly
 // map the color!
 __device__ Vec3 rayColor(const Ray& ray, Triangle3* triangles,
-                         int num_triangle) {
-    Vec3 result{};
+                         const int& num_triangle, Triangle3* wall_tri, const int& num_wall_tri) {
     bool hit_anything = false;
-    float closest_so_far = INFINITY;
-    Vec3 closest_normal;
-    
-    for (int tri = 0; tri < num_triangle; tri++) {
-        const Triangle3& triangle = triangles[tri];
-        Vec3 intersection;
-        float u, v;
-        if (rayIntersectsTriangle(ray, triangle, intersection, u, v)) {  
-            // "zbuffer" thing (we don't need to store all the info rn)
-            float t = -intersection.z();
-            
-            if (t < closest_so_far) {
-                hit_anything = true;
-                closest_so_far = t;
-                
-                // Barycentric coord for normal interp
-                float w = 1.0f - u - v;
-   
-                closest_normal = w * triangle.normal0() + 
-                                u * triangle.normal1() + 
-                                v * triangle.normal2();
-            }
-        }
-    }
-    
-    if (hit_anything) {
-        // Normalize only once!
-        closest_normal = unit_vector(closest_normal);
-        // result = 0.5f * Vec3(closest_normal.x() + 1.0f, 
-        //                    closest_normal.y() + 1.0f,
-        //                    closest_normal.z() + 1.0f);
+    // check wall_mesh hit
+    // int wall_tri_idx = closestTriangleIdx(ray, wall_tri, num_wall_tri);
+    // Triangle3 hit_wall;
+    // Vec3 wall_intersect;
+    // float u_wall, v_wall, t_wall;
+    // if (wall_tri_idx < num_wall_tri) {
+    //     hit_wall = wall_tri[wall_tri_idx];
+    //     rayIntersectsTriangle(ray, hit_wall, wall_intersect, u_wall, v_wall, t_wall);
+    //     hit_anything = true;
+    // }
 
+
+    // check triangle_mesh hit
+    int triangle_idx = closestTriangleIdx(ray, triangles, num_triangle); 
+    Triangle3 hit_triangle;
+    Vec3 tri_intersect;
+    float u;
+    float v;
+    float w;
+    float t = INFINITY;
+
+    if (triangle_idx < num_triangle) {
+        hit_triangle = triangles[triangle_idx];
+        rayIntersectsTriangle(ray, hit_triangle, tri_intersect, u, v, t);
+        hit_anything = true;
+    }
+
+    // check if wall or tri is closer
+    Vec3 closest_normal;
+    // if (t_wall < t) {
+    //     hit_triangle = hit_wall;
+    //     u = u_wall;
+    //     v = v_wall;
+    //     closest_normal = cross(hit_triangle.edge0(), hit_triangle.edge1());
+    //
+    //     // Normalize only once!
+    //     closest_normal = unit_vector(closest_normal);
+    //     return 0.5f * Vec3(closest_normal.x() + 1.0f, 
+    //                        closest_normal.y() + 1.0f,
+    //                        closest_normal.z() + 1.0f);
+    // }
+
+    // Vec3 closest_normal;
+    if (hit_anything) {
+        // hit_triangle = triangles[triangle_idx];
+        // float u, v, w, t;
+        // rayIntersectsTriangle(ray, hit_triangle, closest_normal, u, v, t);
+
+        // barycentric coord for face normal interpolation
+        w = 1.0f - u - v;
+        closest_normal = w * hit_triangle.normal0() +
+                         u * hit_triangle.normal1() +
+                         v * hit_triangle.normal2();
+
+        // for (int diffuseIdx)
         // TODO: replace with "monte carlo" method for loop thing
         // simple lambertian diffuse
         Vec3 light = unit_vector(Vec3(0.0f, 20.0f, 10.0f) - closest_normal);
@@ -97,27 +150,24 @@ __device__ Vec3 rayColor(const Ray& ray, Triangle3* triangles,
         if (cos < 0.0f) { // not sure if this is needed
             cos = 0.0f;
         }
-        result = whiteCol * cos * 0.8f; 
-        // result = Vec3(1.0f, 0.0f, 0.0f);
+        return whiteCol * cos * 0.8f; 
     } else {
         // Background color when no intersection
         Vec3 unit_direction = unit_vector(ray.direction());
         float alpha = 0.5f * (unit_direction.y() + 1.0);  // y = [-1,1] to y = [0,1]
         // lerp between white (1, 1, 1) to sky_blue (0.5, 0.7, 1)
-        result = (1.0f - alpha) * Vec3(1.0f, 1.0f, 1.0f) +
+        return (1.0f - alpha) * Vec3(1.0f, 1.0f, 1.0f) +
                  alpha * Vec3(0.5f, 0.7f, 1.0f);
     }
-    
-    return result;
 }
 
 __global__ void rayRender(Vec3* image_buffer, int width, int height,
                           Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
                           Vec3 camera_origin, Triangle3* triangle_mesh,
-                          int num_triangles) {
+                          int num_triangles, Triangle3* wall_mesh, int num_wall_tri) {
     // Calculate pixel coordinates 
-    const int col = blockIdx.x * blockDim.x + threadIdx.x;
-    const int row = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int col = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int row = blockIdx.y * blockDim.y + threadIdx.y;
     
     if (col < width && row < height) {
         const int pixel_idx = row * width + col;
@@ -127,7 +177,7 @@ __global__ void rayRender(Vec3* image_buffer, int width, int height,
         const Vec3 ray_direction = pixel_center - camera_origin;
         
         Ray ray(camera_origin, ray_direction);
-        image_buffer[pixel_idx] = rayColor(ray, triangle_mesh, num_triangles);
+        image_buffer[pixel_idx] = rayColor(ray, triangle_mesh, num_triangles, wall_mesh, num_wall_tri);
     }
 }
 
