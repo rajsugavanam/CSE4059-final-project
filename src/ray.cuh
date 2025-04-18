@@ -5,7 +5,7 @@
 
 class Ray {
    public:
-    __host__ __device__ Ray();
+    __host__ __device__ Ray() : origin_(Vec3()), direction_(Vec3()) {}
 
     __host__ __device__ Ray(const Vec3& origin, const Vec3& direction)
         : origin_(origin), direction_(direction) {}

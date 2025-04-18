@@ -24,6 +24,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build/bin)
 
+# abs path to proj root so i can run exec file from anywhere
+add_compile_definitions(PROJECT_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+
 # extra compiler flags. we (and by that i mean me, raj) don't like warnings
 # so we make them errors.
 set(CMAKE_CUDA_FLAGS -Werror=all-warnings)
@@ -42,3 +45,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC src)
 # LINK LIBRARIES ---------------------
 target_link_libraries(crt PUBLIC cudamath)
 # ------------------------------------
+
+# OTHER PROPERTIES -------------------
+# set_target_properties(crt PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+# ------------------------------------
+

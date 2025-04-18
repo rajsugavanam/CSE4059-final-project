@@ -24,5 +24,6 @@ release/compile_commands.json
 *.so
 
 build
+build_analyze
 crt
 lib*
