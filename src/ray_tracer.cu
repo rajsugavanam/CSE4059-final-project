@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 
+#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <ostream>
@@ -61,9 +62,10 @@ int main() {
     Model model = reader.parsedModel;
 
     // Check for empty triangles instead of faces
-    if (model.modelTriangles.empty()) {
-        return 1;
-    }
+    // if (model.modelTriangles.empty()) {
+    //     return 1;
+    // }
+    assert(!model.modelTriangles.empty());
     timer.stop();
 
     //  =================
@@ -94,7 +96,7 @@ int main() {
     // ========================
     timer.start("Memory Allocation on GPU");
     // init rgb image output buffer
-    Vec3* image_buffer_h{new Vec3[image_buffer_size]()};
+    Vec3* image_buffer_h{new Vec3[image_buffer_size]};
     Vec3* image_buffer_d;
 
     // load all the triangles
