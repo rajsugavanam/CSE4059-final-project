@@ -1,0 +1,70 @@
+\documentclass[12pt]{article}
+
+
+\usepackage{custom_package}
+\usepackage[mocha,styleAll]{catppuccinpalette}
+\usepackage[paper=letterpaper, vmargin=1in, hmargin=0.5in]{geometry}
+
+
+% \fancyhead[L]{(Names)}
+\fancyhead[C]{CSE 4059 (GPU Programming)}
+\rhead{Raj Sugavanam \& Junseo Shin}
+\lhead{CRT}
+% \fancyhead[R]{(IDs)}
+\setlength{\headheight}{14.5pt}
+\pagestyle{fancy}
+
+
+\fboxsep=1mm
+\fboxrule=2pt
+
+
+\graphicspath{ {.} }
+
+
+\begin{document}
+
+
+\begin{center}
+    \section*{Project Checkpoint}
+\end{center}
+
+
+\subsection*{Progress Update}
+%     \item \textbf{Current Progress:} [Describe what you have accomplished up to this point.]
+%     \item \textbf{Comparison to Plan:} [Identify how your current progress matches or does not
+%       match the progress you anticipated in your project plan.]
+
+Currently we have successfully implemented a method to parse an \texttt{.obj} file and store the
+mesh of triangles into the GPU memory. After the triangles are copied to the device memory, we are
+able to correctly render the object using ray casting to determine the correct triangle 
+intersection and interpolate the vertex normal to compute the normal map of each pixel being
+rendered. Furthermore, we have implemented a basic ``lambertian'' shading model to
+compute the color of the intersected triangle point based on the light source position.
+
+This matches the timeline of our project plan which also gave us extra time to read up on
+literature and useful libraries that will be paramount for the next steps of our project.
+
+\subsection*{Implementation Details}
+%   \item \textbf{Implementation:} [Describe the current state of your code implementation,
+%       including any algorithms and optimizations you have applied.]
+%   \item \textbf{Performance Measurements:} [Present appropriate performance measurements of your
+%       code implementation to date.]
+% [GitHub Repository Link]
+
+\subsection*{Project Plan Revisions}
+%   \item \textbf{Revisions:} [Detail any changes to your project plan.]
+%   \item \textbf{Justification:} [Explain why these revisions are necessary.
+%       It is common and expected for projects to change direction slightly during implementation.]
+
+Clearer Objectives have been set for the next steps of our project:
+
+\begin{itemize}
+    \item Cornell Box Scene
+    \item Monte Carlo Path tracing
+    \item True Lambertian Diffuse Reflection
+\end{itemize}
+
+
+
+\end{document}
