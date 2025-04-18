@@ -161,6 +161,7 @@ __device__ Vec3 rayColor(const Ray& ray, Triangle3* triangles,
     }
 }
 
+// TODO: use structs here
 __global__ void rayRender(Vec3* image_buffer, int width, int height,
                           Vec3 pixel00_loc, Vec3 delta_u, Vec3 delta_v,
                           Vec3 camera_origin, Triangle3* triangle_mesh,
