@@ -13,6 +13,17 @@
 #include "vec3.cuh"
 #include "obj_reader.cuh"
 
+// CUDA Error Handling
+#define CUDA_CHECK(call)                                                   \
+  do {                                                                     \
+    cudaError_t error = call;                                              \
+    if (error != cudaSuccess) {                                            \
+      std::cerr << "CUDA error at " << __FILE__ << ":" << __LINE__ << ": " \
+                << cudaGetErrorString(error) << std::endl;                 \
+      exit(1);                                                             \
+    }                                                                      \
+  } while (0)
+
 // perhaps move all this to a struct...
 const float aspect_ratio = 16.0f / 9.0f;
 const int pixel_height = 1080;
@@ -55,8 +66,9 @@ int main() {
     
     // abs path to obj using PROJECT_ROOT macro in cmake 
     // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/TyDonkeyKR.obj");
-    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/Untitled.obj");
+    // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/Untitled.obj");
     // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/sphere.obj");
+    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/cubedk.obj");
     
     reader.readModel();
     Model model = reader.parsedModel;
@@ -106,17 +118,22 @@ int main() {
     size_t trianglesMemSize = mesh_size * sizeof(Triangle3);
     Triangle3* walls_d;
     size_t wall_size = 2 * num_walls * sizeof(Triangle3);
+    std::cout << "OBJ MODEL SIZE: " << mesh_size << "\n";
     std::cout << "wall byte size: " << wall_size << "\n"
              << "Vec3 byte size: " << sizeof(Vec3) << "\n"
              << "Triangle3 byte size: " << sizeof(Triangle3) << std::endl;
 
     // from cuRAND
     curandState *rngStates_d = 0;
+    dim3 block_size(16, 16);
+    dim3 grid_size((pixel_width + block_size.x - 1) / block_size.x,
+                   (pixel_height + block_size.y - 1) / block_size.y);
 
+    int total_threads = block_size.x * grid_size.x * block_size.y * grid_size.y;
     // malloc state
     cudaMalloc((void**)&image_buffer_d, image_buffer_byte_size);
     cudaMalloc((void**)&triangles_d, trianglesMemSize);
-    cudaMalloc((void**)&rngStates_d, mesh_size*sizeof(*rngStates_d));
+    cudaMalloc((void**)&rngStates_d, total_threads * sizeof(curandState));
     cudaMalloc((void**)&walls_d, wall_size);
     cudaMemcpy(image_buffer_d, image_buffer_h, image_buffer_byte_size,
                cudaMemcpyHostToDevice);
@@ -127,10 +144,10 @@ int main() {
     // ===========================
     // ===== RUNNING ON GPU ======
     // ===========================
+    timer.start("Init cuRAND");
+    initRng<<<grid_size, block_size>>>(rngStates_d, pixel_width);
+    timer.stop();
     timer.start("Kernel Launching");
-    dim3 block_size(16, 16);
-    dim3 grid_size((pixel_width + block_size.x - 1) / block_size.x,
-                   (pixel_height + block_size.y - 1) / block_size.y);
     
     rayRender<<<grid_size, block_size>>>(
         image_buffer_d, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
