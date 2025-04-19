@@ -1,0 +1,117 @@
+\documentclass[12pt]{article}
+
+
+\usepackage{custom_package}
+\usepackage[mocha,styleAll]{catppuccinpalette}
+\usepackage[paper=letterpaper, vmargin=1in, hmargin=0.5in]{geometry}
+
+
+% \fancyhead[L]{(Names)}
+\fancyhead[C]{CSE 4059 (GPU Programming)}
+\rhead{Raj Sugavanam \& Junseo Shin}
+\lhead{CRT}
+% \fancyhead[R]{(IDs)}
+\setlength{\headheight}{14.5pt}
+\pagestyle{fancy}
+
+
+\fboxsep=1mm
+\fboxrule=2pt
+
+
+\graphicspath{ {.} }
+
+
+\begin{document}
+
+
+\begin{center}
+    \section*{Project Checkpoint}
+\end{center}
+
+
+\subsection*{Progress Update}
+%     \item \textbf{Current Progress:} [Describe what you have accomplished up to this point.]
+%     \item \textbf{Comparison to Plan:} [Identify how your current progress matches or does not
+%       match the progress you anticipated in your project plan.]
+
+Currently we have successfully implemented a method to parse an \texttt{.obj} file and store the
+mesh of triangles into the GPU memory. After the triangles are copied to the device memory, we are
+able to correctly render the object using ray casting to determine the correct triangle 
+intersection and interpolate the vertex normal to compute the normal map of each pixel being
+rendered. Furthermore, we have implemented a basic ``lambertian'' shading model to
+compute the color of the intersected triangle point based on the light source position.
+
+This matches the timeline of our project plan which also gave us extra time to read up on
+literature and useful libraries that will be paramount for the next steps of our project.
+
+\subsection*{Implementation Details}
+%   \item \textbf{Implementation:} [Describe the current state of your code implementation,
+%       including any algorithms and optimizations you have applied.]
+%   \item \textbf{Performance Measurements:} [Present appropriate performance measurements of your
+%       code implementation to date.]
+% [GitHub Repository Link]
+
+\paragraph{Implementation:}
+
+\begin{itemize}
+    \item Our lighting model assumes that we have a fixed-direction light ray at every point in space. This is highly
+        unrealistic as there is no `source' of light, however we have gotten a base lighting model to work. We implemented
+        the M\"oller-Trombore triangle intersection algorithm, which is performed \(O(N)\) times, where \(N\) is proportional
+        to the number of triangles (which is proportional to the number of threads).
+\end{itemize}
+
+\subsubsection*{Performance Measurements:}
+
+Runtime Measurements:
+\begin{itemize}
+    \item 960 triangle mesh runtime: 13.685 ms
+    \item 4753 triangle mesh runtime: 66.592 ms
+    \item 18192 triangle mesh runtime: 248.574 ms
+\end{itemize}
+
+NCU Measurements:
+\begin{itemize}
+    \item SOL Compute (SM) Throughput: 96.41\%
+    \item Achieved Occupancy: 96.20\%
+\end{itemize}
+
+\href{https://github.com/rajsugavanam/CSE4059-final-project}{https://github.com/rajsugavanam/CSE4059-final-project}
+
+\subsection*{Project Plan Revisions}
+%   \item \textbf{Revisions:} [Detail any changes to your project plan.]
+%   \item \textbf{Justification:} [Explain why these revisions are necessary.
+%       It is common and expected for projects to change direction slightly during implementation.]
+
+\paragraph{Revisions:}
+
+Clearer Objectives have been set for the next steps of our project:
+
+\begin{itemize}
+    \item Cornell Box Scene
+    \item Monte Carlo Path tracing and Lambertian Diffuse Reflection
+\end{itemize}
+
+We also plan to put a ground surface for the floor, and plan on making a triangle-based light source. We may use
+multiple objects to test multiple bounces of a ray, compared to our original decision in the project plan to use only
+one model. To this effect, we will need to make a new \texttt{class} for light sources. We also change the way our
+memory layout of our vertex or normal list works to allow for better coalescing.
+
+\paragraph{Justification:}
+
+\begin{itemize}
+    \item The Cornell Box Scene will allow use to test the path tracing algorithm as it requires
+        multiple bounces of a ray to be able to compute the color of a pixel after it hits a light
+        source.
+    \item This will require us to to use the cuRAND to uniformly sample the reflected
+        ray at a bounce point which must point in the hemisphere of the triangle normal.
+        The lambertian diffuse reflection can be optimized by a cosine weighted sampling 
+        so we don't have to reject a uniform ray sample that does not fit in the hemisphere.
+    \item Using triangle meshes to represent both the light source and ground/walls of the
+        scene will allow us to use the same intersection algorithm which will simplify the
+        control flow of the program.
+    \item Changing the memory layout to using structure of arrays (SoA) is necessary for
+        parallel computing which should in theory speed up our program.
+\end{itemize}
+
+\end{document}
