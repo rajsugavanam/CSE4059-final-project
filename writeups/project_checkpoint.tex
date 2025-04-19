@@ -61,7 +61,7 @@ literature and useful libraries that will be paramount for the next steps of our
         to the number of triangles (which is proportional to the number of threads).
 \end{itemize}
 
-\paragraph{Performance Measurements:}
+\subsubsection*{Performance Measurements:}
 
 Runtime Measurements:
 \begin{itemize}
@@ -76,7 +76,7 @@ NCU Measurements:
     \item Achieved Occupancy: 96.20\%
 \end{itemize}
 
-\href{https://github.com/rajsugavanam/CSE4059-final-project}{Repo Link.}
+\href{https://github.com/rajsugavanam/CSE4059-final-project}{https://github.com/rajsugavanam/CSE4059-final-project}
 
 \subsection*{Project Plan Revisions}
 %   \item \textbf{Revisions:} [Detail any changes to your project plan.]
@@ -89,8 +89,7 @@ Clearer Objectives have been set for the next steps of our project:
 
 \begin{itemize}
     \item Cornell Box Scene
-    \item Monte Carlo Path tracing
-    \item True Lambertian Diffuse Reflection
+    \item Monte Carlo Path tracing and Lambertian Diffuse Reflection
 \end{itemize}
 
 We also plan to put a ground surface for the floor, and plan on making a triangle-based light source. We may use
@@ -100,7 +99,19 @@ memory layout of our vertex or normal list works to allow for better coalescing.
 
 \paragraph{Justification:}
 
-
-
+\begin{itemize}
+    \item The Cornell Box Scene will allow use to test the path tracing algorithm as it requires
+        multiple bounces of a ray to be able to compute the color of a pixel after it hits a light
+        source.
+    \item This will require us to to use the cuRAND to uniformly sample the reflected
+        ray at a bounce point which must point in the hemisphere of the triangle normal.
+        The lambertian diffuse reflection can be optimized by a cosine weighted sampling 
+        so we don't have to reject a uniform ray sample that does not fit in the hemisphere.
+    \item Using triangle meshes to represent both the light source and ground/walls of the
+        scene will allow us to use the same intersection algorithm which will simplify the
+        control flow of the program.
+    \item Changing the memory layout to using structure of arrays (SoA) is necessary for
+        parallel computing which should in theory speed up our program.
+\end{itemize}
 
 \end{document}
