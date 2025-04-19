@@ -55,7 +55,10 @@ literature and useful libraries that will be paramount for the next steps of our
 \paragraph{Implementation:}
 
 \begin{itemize}
-    \item 
+    \item Our lighting model assumes that we have a fixed-direction light ray at every point in space. This is highly
+        unrealistic as there is no `source' of light, however we have gotten a base lighting model to work. We implemented
+        the M\"oller-Trombore triangle intersection algorithm, which is performed \(O(N)\) times, where \(N\) is proportional
+        to the number of triangles (which is proportional to the number of threads).
 \end{itemize}
 
 \paragraph{Performance Measurements:}
@@ -72,10 +75,15 @@ NCU Measurements:
     \item SOL Compute (SM) Throughput: 96.41\%
     \item Achieved Occupancy: 96.20\%
 \end{itemize}
+
+\href{https://github.com/rajsugavanam/CSE4059-final-project}{Repo Link.}
+
 \subsection*{Project Plan Revisions}
 %   \item \textbf{Revisions:} [Detail any changes to your project plan.]
 %   \item \textbf{Justification:} [Explain why these revisions are necessary.
 %       It is common and expected for projects to change direction slightly during implementation.]
+
+\paragraph{Revisions:}
 
 Clearer Objectives have been set for the next steps of our project:
 
@@ -84,6 +92,14 @@ Clearer Objectives have been set for the next steps of our project:
     \item Monte Carlo Path tracing
     \item True Lambertian Diffuse Reflection
 \end{itemize}
+
+We also plan to put a ground surface for the floor, and plan on making a triangle-based light source. We may use
+multiple objects to test multiple bounces of a ray, compared to our original decision in the project plan to use only
+one model. To this effect, we will need to make a new \texttt{class} for light sources. We also change the way our
+memory layout of our vertex or normal list works to allow for better coalescing.
+
+\paragraph{Justification:}
+
 
 
 
