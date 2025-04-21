@@ -50,9 +50,9 @@ class Vec3 {
 };
 
 // ===== Vector Util Functions =====
-__host__ std::ostream& operator<<(std::ostream& os, const Vec3& vec) {
-    return os << vec.e_[0] << " " << vec.e_[1] << " " << vec.e_[2];
-}
+// __host__ inline std::ostream& operator<<(std::ostream& os, const Vec3& vec) {
+//     return os << vec.e_[0] << " " << vec.e_[1] << " " << vec.e_[2];
+// }
 
 __host__ __device__ __forceinline__ Vec3 operator+(const Vec3& u, const Vec3& v) {
     return Vec3(u.e_[0] + v.e_[0], u.e_[1] + v.e_[1], u.e_[2] + v.e_[2]);

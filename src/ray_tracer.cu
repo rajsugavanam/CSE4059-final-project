@@ -12,6 +12,7 @@
 #include "timer.h"
 #include "vec3.cuh"
 #include "obj_reader.cuh"
+#include "image_writer.h"
 
 // CUDA Error Handling
 #define CUDA_CHECK(call)                                                   \
@@ -53,105 +54,73 @@ const Vec3 pixel00_loc =
 const int image_buffer_size = pixel_width * pixel_height;
 const size_t image_buffer_byte_size = image_buffer_size * sizeof(Vec3);
 
-// Fucntion declaserioansen
-void writeToPPM(const char* filename, Vec3* image_buffer, int width,
-                int height);
-
 int main() {
+    // =====================
+    // ===== CONSTANTS =====
+    // =====================
+    const int block_dim_x = 16;
+    const int block_dim_y = 16;
+    const int grid_dim_x = (pixel_width + block_dim_x - 1) / block_dim_x;
+    const int grid_dim_y = (pixel_height + block_dim_y - 1) / block_dim_y;
+
     // ===================
     // ===== THE OBJ =====
     // ===================
     Timer timer;
     timer.start("Loading OBJ file");
     
-    // abs path to obj using PROJECT_ROOT macro in cmake 
     // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/TyDonkeyKR.obj");
-    // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/Untitled.obj");
-    // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/sphere.obj");
+    // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/large_sphere.obj");
     ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/cubedk.obj");
+    // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/dk.obj");
     
     reader.readModel();
     Model model = reader.parsedModel;
 
-    // Check for empty triangles instead of faces
-    // if (model.modelTriangles.empty()) {
-    //     return 1;
-    // }
     assert(!model.modelTriangles.empty());
     timer.stop();
-
-    //  =================
-    //  ===== WALLS =====
-    //  =================
-    size_t num_walls{1};
-    float z_length = -10.0f;
-    float y_length = -1.0f;
-    float x_length = -z_length * 0.5f;
-    int num_wall_tri = 2;
-    Triangle3* walls_h{new Triangle3[num_wall_tri]{
-            Triangle3{
-                Vec3{-x_length, y_length, z_length},
-                Vec3{x_length, y_length, z_length},
-                Vec3{x_length, y_length, z_length * 1.5f}
-            },
-            Triangle3{
-                Vec3{-x_length, y_length, z_length},
-                Vec3{-x_length, y_length, z_length * 1.5f},
-                Vec3{x_length, y_length, z_length * 1.5f}
-            }
-        }
-    };
-
 
     // ========================
     // ===== MEMORY TRAIN =====
     // ========================
     timer.start("Memory Allocation on GPU");
     // init rgb image output buffer
-    Vec3* image_buffer_h{new Vec3[image_buffer_size]};
-    Vec3* image_buffer_d;
+    Vec3* h_image_buffer{new Vec3[image_buffer_size]};
+    Vec3* d_image_buffer;
 
     // load all the triangles
-    Triangle3* triangles_h = model.modelTriangles.data();
-    Triangle3* triangles_d;
+    Triangle3* h_triangle_mesh = model.modelTriangles.data();
+    Triangle3* d_triangle_mesh;
     size_t mesh_size = model.modelTriangles.size();
-    size_t trianglesMemSize = mesh_size * sizeof(Triangle3);
-    Triangle3* walls_d;
-    size_t wall_size = 2 * num_walls * sizeof(Triangle3);
+    size_t triangle_mesh_byte_size = mesh_size * sizeof(Triangle3);
     std::cout << "OBJ MODEL SIZE: " << mesh_size << "\n";
-    std::cout << "wall byte size: " << wall_size << "\n"
-             << "Vec3 byte size: " << sizeof(Vec3) << "\n"
-             << "Triangle3 byte size: " << sizeof(Triangle3) << std::endl;
 
     // from cuRAND
-    curandState *rngStates_d = 0;
-    dim3 block_size(16, 16);
-    dim3 grid_size((pixel_width + block_size.x - 1) / block_size.x,
-                   (pixel_height + block_size.y - 1) / block_size.y);
+    curandState *d_rng_states = 0;
 
-    int total_threads = block_size.x * grid_size.x * block_size.y * grid_size.y;
+    int total_threads = block_dim_x * block_dim_y * grid_dim_x * grid_dim_y;
     // malloc state
-    cudaMalloc((void**)&image_buffer_d, image_buffer_byte_size);
-    cudaMalloc((void**)&triangles_d, trianglesMemSize);
-    cudaMalloc((void**)&rngStates_d, total_threads * sizeof(curandState));
-    cudaMalloc((void**)&walls_d, wall_size);
-    cudaMemcpy(image_buffer_d, image_buffer_h, image_buffer_byte_size,
+    cudaMalloc((void**)&d_image_buffer, image_buffer_byte_size);
+    cudaMalloc((void**)&d_triangle_mesh, triangle_mesh_byte_size);
+    cudaMalloc((void**)&d_rng_states, total_threads * sizeof(curandState));
+    cudaMemcpy(d_image_buffer, h_image_buffer, image_buffer_byte_size,
                cudaMemcpyHostToDevice);
-    cudaMemcpy(triangles_d, triangles_h, trianglesMemSize, cudaMemcpyHostToDevice);
-    cudaMemcpy(walls_d, walls_h, wall_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_triangle_mesh, h_triangle_mesh, triangle_mesh_byte_size, cudaMemcpyHostToDevice);
     timer.stop();
 
     // ===========================
     // ===== RUNNING ON GPU ======
     // ===========================
+    dim3 block_dim(block_dim_x, block_dim_y);
+    dim3 grid_dim(grid_dim_x, grid_dim_y);
     timer.start("Init cuRAND");
-    initRng<<<grid_size, block_size>>>(rngStates_d, pixel_width);
+    initRng<<<grid_dim, block_dim>>>(d_rng_states, pixel_width);
     timer.stop();
     timer.start("Kernel Launching");
     
-    rayRender<<<grid_size, block_size>>>(
-        image_buffer_d, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
-        pixel_delta_v, camera_center, triangles_d, mesh_size, walls_d, num_wall_tri);
+    rayRender<<<grid_dim, block_dim>>>(
+        d_image_buffer, pixel_width, pixel_height, pixel00_loc, pixel_delta_u,
+        pixel_delta_v, camera_center, d_triangle_mesh, mesh_size);
     
     cudaDeviceSynchronize();
     timer.stop();
@@ -160,39 +129,21 @@ int main() {
     // ===== CPU IMAGE WRITER =====
     // ============================
     timer.start("Copying back to host");
-    cudaMemcpy(image_buffer_h, image_buffer_d, image_buffer_byte_size,
+    cudaMemcpy(h_image_buffer, d_image_buffer, image_buffer_byte_size,
                cudaMemcpyDeviceToHost);
     timer.stop();
 
     timer.start("Outputting to PPM file");
-    writeToPPM("outout.ppm", image_buffer_h, pixel_width, pixel_height);
+    writeToPPM("outout.ppm", h_image_buffer, pixel_width, pixel_height);
     timer.stop();
 
     // ==========================
     // ===== MEMORY FREEDOM =====
     // ==========================
-    delete[] image_buffer_h;
-    delete[] walls_h;
-    cudaFree(image_buffer_d);
-    cudaFree(triangles_d);
-    cudaFree(walls_d);
-    cudaFree(rngStates_d);
+    delete[] h_image_buffer;
+    cudaFree(d_image_buffer);
+    cudaFree(d_triangle_mesh);
+    cudaFree(d_rng_states);
 
     return 0;
-}
-
-void writeToPPM(const char* filename, Vec3* image_buffer, int pixel_width,
-                int pixel_height) {
-    std::ofstream os(filename);
-    os << "P3\n" << pixel_width << " " << pixel_height << "\n255\n";
-    for (int j = 0; j < pixel_height; j++) {
-        for (int i = 0; i < pixel_width; i++) {
-            int pixel_idx = (j * pixel_width + i);
-            int r = static_cast<int>(image_buffer[pixel_idx].x() * 255.999);
-            int g = static_cast<int>(image_buffer[pixel_idx].y() * 255.999);
-            int b = static_cast<int>(image_buffer[pixel_idx].z() * 255.999);
-            os << r << " " << g << " " << b << "\n";
-        }
-    }
-    os.close();
 }

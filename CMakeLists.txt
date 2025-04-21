@@ -3,12 +3,6 @@ cmake_minimum_required(VERSION 3.30)
 
 project(cuda_ray_tracer LANGUAGES CXX CUDA)
 
-# find_package(library)
-
-# include_directories(${library_INCLUDE_DIRS})
-
-# add_subdirectory(src)
-
 set(PROJECT_NAME crt)
 
 set(CMAKE_CUDA_ARCHITECTURES 89)
@@ -29,24 +23,31 @@ add_compile_definitions(PROJECT_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
 
 # extra compiler flags. we (and by that i mean me, raj) don't like warnings
 # so we make them errors.
-set(CMAKE_CUDA_FLAGS -Werror=all-warnings)
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror=all-warnings")
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON) # key to multiple .cu source files
 
-# LIBRARIES --------------------------
-# add_library(cudamath SHARED
-#     ${PROJECT_SOURCE_DIR}/src/math/VecN.cu)
-add_subdirectory(src/math)
-# ------------------------------------
+# INCLUDE DIRECTORIES ------------------------------
+include_directories(
+  ${PROJECT_SOURCE_DIR}/include
+)
 
-# ------------------------------------
-add_executable(${PROJECT_NAME} src/ray_tracer.cu)
-target_include_directories(${PROJECT_NAME} PUBLIC src)
-# ------------------------------------
+# LIBRARIES ------------------------------
+add_library(reduction STATIC
+    src/reduction.cu
+)
+# If you want to remove global include || target properties
+# target_include_directories(reduction PUBLIC include)
+#
+# set_target_properties(reduction PROPERTIES
+#     CUDA_SEPARABLE_COMPILATION ON
+# )
 
-# LINK LIBRARIES ---------------------
-target_link_libraries(crt PUBLIC cudamath)
-# ------------------------------------
 
-# OTHER PROPERTIES -------------------
-# set_target_properties(crt PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-# ------------------------------------
+# MAIN EXECUTABLE ------------------------------
+add_executable(${PROJECT_NAME} "src/ray_tracer.cu")
+# Linking libraries
+target_link_libraries(${PROJECT_NAME} reduction)
 
+# TESTS ------------------------------
+enable_testing()
+add_subdirectory(tests)
