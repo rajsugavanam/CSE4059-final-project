@@ -31,3 +31,9 @@ target_link_libraries(obj_reduction_test
 add_test(NAME Obj.Reduce.AABB
     COMMAND obj_reduction_test
 )
+
+# CAMERA TEST ------------------------------
+add_executable(camera_test "camera_test.cu")
+add_test(NAME Camera.Test
+    COMMAND camera_test
+)

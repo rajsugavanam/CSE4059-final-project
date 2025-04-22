@@ -9,7 +9,7 @@
 #include "aabb.cuh"
 #include "timer.h"
 #include "obj_reader.cuh"
-#include "image_writer.h"
+#include "camera.h"
 #include "vec3.cuh"
 
 // perhaps move all this to a struct...

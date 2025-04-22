@@ -5,7 +5,7 @@
 #include "ray.cuh"
 #include "vec3.cuh"
 #include "cuda_helper.h"
-#include "image_writer.h"
+#include "camera.h"
 
 #define IMAGE_WIDTH 1920
 #define IMAGE_HEIGHT 1080
