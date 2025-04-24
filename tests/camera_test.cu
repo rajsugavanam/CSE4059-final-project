@@ -2,7 +2,6 @@
 #include <curand_kernel.h>
 
 #include <cassert>
-#include <fstream>
 #include <iostream>
 #include <ostream>
 #include <string>
@@ -10,7 +9,6 @@
 #include "crt2.cuh"
 // #include "ray.cuh"
 #include "camera.h"
-#include "cuda_helper.h"
 #include "obj_reader.cuh"
 #include "timer.h"
 #include "vec3.cuh"

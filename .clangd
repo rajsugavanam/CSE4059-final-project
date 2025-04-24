@@ -6,6 +6,7 @@ CompileFlags:
     [
       -forward-unknown-to-host-compiler,
       --generate-code*,
-      -Xcompiler*
+      -Xcompiler*,
+      -rdc*
     ]
     # clangd doesn't like nvcc flags.
