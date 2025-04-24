@@ -78,11 +78,3 @@ target_link_libraries(reduction_benchmark
 add_test(NAME Reduce.Benchmark
     COMMAND reduction_benchmark
 )
-# LIGHT SAMPLING TEST ------------------------------
-add_executable(light_samp_test "light_sampling_test.cu")
-target_link_libraries(light_samp_test
-    light_sampling
-)
-add_test(NAME LightSamp.Test
-    COMMAND light_samp_test
-)

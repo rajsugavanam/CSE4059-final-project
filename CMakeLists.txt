@@ -38,9 +38,6 @@ include_directories(
 add_library(reduction_old STATIC
     src/reduction_old.cu
 )
-add_library(light_sampling STATIC
-    src/light_sampling.cu
-)
 # If you want to remove global include || target properties
 # target_include_directories(reduction PUBLIC include)
 #

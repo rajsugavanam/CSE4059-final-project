@@ -114,7 +114,6 @@ class Camera {
         center = look_from;
 
         // Camera basis vectors
-        // unit: 1->
         w = unit_vector(look_from - look_at);
         u = unit_vector(cross(v_up, w));
         v = cross(w, u);
@@ -122,47 +121,25 @@ class Camera {
         // Viewport dimensions
         // https://en.wikipedia.org/wiki/Field_of_view#Photography
         focal_length = (look_from - look_at).length();
-        // unit: deg
         float theta = vfov * M_PI / 180.0;  // convert to radians
-        // unit: pixels
         float viewport_height = 2.0f * tan(theta * 0.5f) * focal_length;
         float viewport_width =
             viewport_height * (static_cast<float>(pixel_width) /
                                static_cast<float>(pixel_height));
 
-        // Viewport vectors (unit: pixels->)
+        // Viewport vectors
         Vec3 viewport_u = viewport_width * u;
         Vec3 viewport_v = viewport_height * -v;  // points down from top left
 
-        // Pixel delta vectors (unit: units/pixel->)
+        // Pixel delta vectors
         pixel_delta_u = viewport_u / static_cast<float>(pixel_width);
         pixel_delta_v = viewport_v / static_cast<float>(pixel_height);
 
         // Upper left corner of the viewport
         Vec3 viewport_upper_left =
-            // pixels (into page) - half screen vector (y) - half screen vector (x)
             center - (focal_length * w) - 0.5f * viewport_u - 0.5f * viewport_v;
         pixel00_loc =
-            // center of first pixel
             viewport_upper_left + 0.5f * (pixel_delta_u + pixel_delta_v);
     }
 };
-
-// TODO: delete after implementing class
-// outputs image to current working directory
-void writeToPPM(const char* filename, Vec3* image_buffer, int pixel_width,
-                int pixel_height) {
-    std::ofstream os(filename);
-    os << "P3\n" << pixel_width << " " << pixel_height << "\n255\n";
-    for (int j = 0; j < pixel_height; j++) {
-        for (int i = 0; i < pixel_width; i++) {
-            int pixel_idx = (j * pixel_width + i);
-            int r = static_cast<int>(image_buffer[pixel_idx].x() * 255.999);
-            int g = static_cast<int>(image_buffer[pixel_idx].y() * 255.999);
-            int b = static_cast<int>(image_buffer[pixel_idx].z() * 255.999);
-            os << r << " " << g << " " << b << "\n";
-        }
-    }
-    os.close();
-}
 #endif  // CAMERA_H
