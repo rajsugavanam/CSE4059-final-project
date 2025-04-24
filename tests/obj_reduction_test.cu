@@ -2,15 +2,16 @@
 
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
-#include "reduction.cuh"
+#include "reduction_old.cuh"
 #include "cuda_helper.h"
 #include "triangle3.cuh"
 #include "ray.cuh"
-#include "aabb.cuh"
+#include "aabb_old.cuh"
 #include "timer.h"
 #include "obj_reader.cuh"
 #include "camera.h"
 #include "vec3.cuh"
+#include "image_writer.h"
 
 // perhaps move all this to a struct...
 const float aspect_ratio = 16.0f / 9.0f;
@@ -124,8 +125,9 @@ void computeAABBHost(const std::vector<Triangle3>& triangles, Vec3& min_bounds, 
     }
 }
 
-int main () {
-    // ===================
+// This test is to check the AABB reduction algorithm
+int oldReduction() {
+// ===================
     // ===== THE OBJ =====
     // ===================
     Timer timer;
@@ -284,4 +286,8 @@ int main () {
         std::cout << "AABB reduction test passed!" << std::endl;
         return 0;
     }
+}
+
+int main (int argc, char* argv[]) {
+    return oldReduction();
 }

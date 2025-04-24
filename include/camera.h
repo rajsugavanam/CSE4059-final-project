@@ -14,28 +14,19 @@ struct CUDACameraParams {
     Vec3 center;
 };
 
-// TODO: Add CameraParam Struct for constructor
 struct CameraParams {
-    float aspect_ratio;
-    int pixel_height;
-    float vfov;
-    Vec3 look_from;
-    Vec3 look_at;
-    Vec3 v_up;
-};
-// struct CameraParams {
-//     float aspect_ratio{16.0f / 9.0f};
-//     int pixel_height{1080};
-//     // int samples_per_pixel{10};
-//     // int max_depth{10};
+    float aspect_ratio{16.0f / 9.0f};
+    int pixel_height{1080};
+    // int samples_per_pixel{10};
+    // int max_depth{10};
 
-//     // Camera positioning
-//     float vfov{90.0f};  // vertical field of view [degrees]
-//     Vec3 look_from{0.0f, 0.0f, 0.0f};
-//     Vec3 look_at{0.0f, 0.0f, -1.0f};
-//     Vec3 v_up{0.0f, 1.0f, 0.0f};
-//     float focal_length{1.0f};
-// };
+    // Camera positioning
+    float vfov{90.0f};                  // vertical field of view [degrees]
+    Vec3 look_from{0.0f, 0.0f, 0.0f};   
+    Vec3 look_at{0.0f, 0.0f, -1.0f};
+    Vec3 v_up{0.0f, 1.0f, 0.0f};
+    float focal_length{1.0f};
+};
 
 // Cornell box CameraParams
 // C++20 designated initializers...
@@ -49,12 +40,12 @@ struct CameraParams {
 // };
 
 const CameraParams cornell_box_params = {
-    1.0f,
-    2160,
-    40.0f,
-    Vec3(278.0f, 278.0f, 800.0f),
-    Vec3(278.0f, 278.0f, 0.0f),
-    Vec3(0.0f, 1.0f, 0.0f),
+    1.0f,                           // aspect ratio
+    1440,                           // pixel height
+    40.0f,                          // vertical field of view [degrees]
+    Vec3(278.0f, 278.0f, 800.0f),   // Camera pos
+    Vec3(278.0f, 278.0f, 0.0f),     // Look at
+    Vec3(0.0f, 1.0f, 0.0f),         // Up vector
 };
 
 class Camera {
@@ -108,6 +99,8 @@ class Camera {
         return camera_params;
     }
 
+    __host__ int pixelWidth() { return pixel_width; }
+    __host__ int pixelHeight() { return pixel_height; }
    private:
     int pixel_width;
     Vec3 pixel00_loc;
@@ -149,22 +142,4 @@ class Camera {
             viewport_upper_left + 0.5f * (pixel_delta_u + pixel_delta_v);
     }
 };
-
-// TODO: delete after implementing class
-// outputs image to current working directory
-void writeToPPM(const char* filename, Vec3* image_buffer, int pixel_width,
-                int pixel_height) {
-    std::ofstream os(filename);
-    os << "P3\n" << pixel_width << " " << pixel_height << "\n255\n";
-    for (int j = 0; j < pixel_height; j++) {
-        for (int i = 0; i < pixel_width; i++) {
-            int pixel_idx = (j * pixel_width + i);
-            int r = static_cast<int>(image_buffer[pixel_idx].x() * 255.999);
-            int g = static_cast<int>(image_buffer[pixel_idx].y() * 255.999);
-            int b = static_cast<int>(image_buffer[pixel_idx].z() * 255.999);
-            os << r << " " << g << " " << b << "\n";
-        }
-    }
-    os.close();
-}
 #endif  // CAMERA_H

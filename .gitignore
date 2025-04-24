@@ -28,5 +28,5 @@ build_analyze
 crt
 lib*
 
-# js shell scripts
+# js stuff
 rebuild.sh

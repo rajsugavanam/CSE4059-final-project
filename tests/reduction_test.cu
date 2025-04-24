@@ -5,7 +5,7 @@
 
 #include <cuda_runtime.h>
 #include <cuda/std/limits>
-#include "reduction.cuh"
+#include "reduction_old.cuh"
 #include "cuda_helper.h"
 #include "timer.h"
 

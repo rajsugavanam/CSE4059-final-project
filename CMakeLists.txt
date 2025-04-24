@@ -5,6 +5,9 @@ project(cuda_ray_tracer LANGUAGES CXX CUDA)
 
 set(PROJECT_NAME crt)
 
+# Device LTO for CUDA i.e. -dlto
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+
 set(CMAKE_CUDA_ARCHITECTURES 89)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -32,8 +35,8 @@ include_directories(
 )
 
 # LIBRARIES ------------------------------
-add_library(reduction STATIC
-    src/reduction.cu
+add_library(reduction_old STATIC
+    src/reduction_old.cu
 )
 # If you want to remove global include || target properties
 # target_include_directories(reduction PUBLIC include)
@@ -42,6 +45,37 @@ add_library(reduction STATIC
 #     CUDA_SEPARABLE_COMPILATION ON
 # )
 
+add_library(triangle_mesh STATIC
+    src/triangle_mesh.cu
+)
+
+# Create the AABB library with optimized settings
+add_library(aabb STATIC
+    src/aabb.cu
+)
+
+# Create Scene Manager library
+add_library(scene_manager STATIC
+    src/scene_manager.cu
+)
+
+target_include_directories(scene_manager PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(scene_manager
+    aabb
+    triangle_mesh
+)
+
+# new reduction library
+add_library(reduction STATIC
+    src/reduction.cu
+)
+target_link_libraries(reduction
+    aabb
+    triangle_mesh
+)
 
 # MAIN EXECUTABLE ------------------------------
 add_executable(${PROJECT_NAME} "src/ray_tracer.cu")

@@ -26,18 +26,20 @@
   } while (0)
 
 // perhaps move all this to a struct...
-const float aspect_ratio = 16.0f / 9.0f;
-const int pixel_height = 1080;
+// const float aspect_ratio = 16.0f / 9.0f;
+const float aspect_ratio = 1.0f;
+const int pixel_height = 1440;
 const int pixel_width = static_cast<int>(pixel_height * aspect_ratio);
-const float focal_length = 1.0f;
-const float viewport_height = 2.0f;
+const float focal_length = 800.0f;
+const float viewport_height = 582.0f;
 const float viewport_width =
     viewport_height * (float(pixel_width) / pixel_height);
-const float camera_x = 0.0f;
-const float camera_y = 0.0f;
-const float camera_z = 0.0f;
+// const float camera_x = 0.0f;
+// const float camera_y = 0.0f;
+// const float camera_z = 0.0f;
 // const Vec3 camera_center = Vec3(0.0f, -6.0f, 7.0f); // the sphere is at a weird location
-const Vec3 camera_center = Vec3(camera_x, camera_y, camera_z);
+// const Vec3 camera_center = Vec3(camera_x, camera_y, camera_z);
+const Vec3 camera_center = Vec3(278.0f, 278.0f, 800.0f); // the sphere is at a weird location
 
 // viewport vector
 const Vec3 viewport_u = Vec3(viewport_width, 0.0f, 0.0f);
@@ -71,7 +73,8 @@ int main() {
     
     // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/TyDonkeyKR.obj");
     // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/large_sphere.obj");
-    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/cubedk.obj");
+    // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/cubedk.obj");
+    ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/cornell_box/cornell_box_dk.obj");
     // ObjReader reader = ObjReader(std::string(PROJECT_ROOT) + "/assets/dk.obj");
     
     reader.readModel();

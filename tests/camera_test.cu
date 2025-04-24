@@ -14,6 +14,7 @@
 #include "obj_reader.cuh"
 #include "timer.h"
 #include "vec3.cuh"
+#include "image_writer.h"
 
 int main() {
     Camera camera(cornell_box_params);
