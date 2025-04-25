@@ -1,9 +1,15 @@
+# TRIANGLE3 CRT TEST ------------------------------
+add_executable(triangle3_crt_test "triangle3_crt_test.cu")
+add_test(NAME Triangle3.CRT
+    COMMAND triangle3_crt_test
+)
+
 # REDUCTION TESTS ------------------------------
 add_executable(reduction_test "reduction_test.cu")
 
-target_link_libraries(reduction_test
-    reduction_old
-)
+# target_link_libraries(reduction_test
+#     reduction_old
+# )
 
 add_test(NAME Reduce.MinMax.1000
     COMMAND reduction_test 1000
@@ -25,9 +31,9 @@ add_test(NAME AABB.Render.Cube
 
 # OBJ REDUCTION + AABB TEST ------------------------------
 add_executable(obj_reduction_test "obj_reduction_test.cu")
-target_link_libraries(obj_reduction_test
-    reduction_old
-)
+# target_link_libraries(obj_reduction_test
+#     reduction_old
+# )
 add_test(NAME Obj.Reduce.AABB
     COMMAND obj_reduction_test
 )
@@ -97,4 +103,16 @@ target_link_libraries(cornell_box_test
 )
 add_test(NAME CornellBox.Test
     COMMAND cornell_box_test
+)
+
+# TRIANGLE MESH VEC TEST ------------------------------
+add_executable(mesh_vec_test "mesh_vec_test.cu")
+target_link_libraries(mesh_vec_test
+    aabb
+    reduction
+    triangle_mesh
+    scene_manager
+)
+add_test(NAME TriangleMesh.Vec
+    COMMAND mesh_vec_test
 )

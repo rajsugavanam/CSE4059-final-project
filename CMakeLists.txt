@@ -35,9 +35,6 @@ include_directories(
 )
 
 # LIBRARIES ------------------------------
-add_library(reduction_old STATIC
-    src/reduction_old.cu
-)
 add_library(light_sampling STATIC
     src/light_sampling.cu
 )
@@ -81,9 +78,9 @@ target_link_libraries(reduction
 )
 
 # MAIN EXECUTABLE ------------------------------
-add_executable(${PROJECT_NAME} "src/ray_tracer.cu")
+# add_executable(${PROJECT_NAME} "src/ray_tracer.cu")
 # Linking libraries
-target_link_libraries(${PROJECT_NAME} reduction)
+# target_link_libraries(${PROJECT_NAME} reduction)
 
 # TESTS ------------------------------
 enable_testing()

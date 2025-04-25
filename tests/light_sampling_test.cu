@@ -3,7 +3,7 @@
 #include "camera.h"
 #include "timer.h"
 #include "obj_reader.cuh"
-#include "crt2.cuh"
+#include "include/crt2.cuh"
 
 int main() {
 

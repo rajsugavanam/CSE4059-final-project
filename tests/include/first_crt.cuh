@@ -1,5 +1,5 @@
-#ifndef CRT_CUH
-#define CRT_CUH
+#ifndef FIRST_CRT_CUH
+#define FIRST_CRT_CUH
 
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
@@ -124,13 +124,13 @@ __device__ Vec3 colorRay(const Ray& ray, Triangle3* triangles,
         // for (int diffuseIdx)
         // TODO: replace with "monte carlo" method for loop thing
         // simple lambertian diffuse
-        Vec3 light = unit_vector(Vec3(0.0f, 5.0f, -5.0f) - tri_intersect);
-        // just whiteCol color for now... use texture norm
-        Vec3 whiteCol = Vec3(1.0f, 1.0f, 1.0f);
-        float cos = dot(closest_normal, light);
-        if (cos < 0.0f) {  // not sure if this is needed
-            cos = 0.0f;
-        }
+        // Vec3 light = unit_vector(Vec3(0.0f, 5.0f, -5.0f) - tri_intersect);
+        // // just whiteCol color for now... use texture norm
+        // Vec3 whiteCol = Vec3(1.0f, 1.0f, 1.0f);
+        // float cos = dot(closest_normal, light);
+        // if (cos < 0.0f) {  // not sure if this is needed
+        //     cos = 0.0f;
+        // }
         // return whiteCol * cos * 0.8f;
 
         // NORMAL MAP SAUCE

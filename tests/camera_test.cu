@@ -6,7 +6,7 @@
 #include <ostream>
 #include <string>
 
-#include "crt2.cuh"
+#include "include/crt2.cuh"
 // #include "ray.cuh"
 #include "camera.h"
 #include "obj_reader.cuh"

@@ -18,7 +18,7 @@ __device__ Vec3 colorRay(const Ray& ray, const AABB* box) {
         return Vec3(1.0f, 0.0f, 0.0f);
     } else {
         // Background color (gradient from blue to white)
-        return sky_bg(ray);
+        return skyBg(ray);
     }
 }
 
@@ -51,7 +51,7 @@ int test_aabb_render() {
     Vec3* d_image;
     cudaMalloc(&d_image, IMAGE_WIDTH * IMAGE_HEIGHT * sizeof(Vec3));
     
-    // Using camera class from crt.cuh
+    // Using camera class from include/first_crt.cuh
     CameraParams params;
     Camera camera(params);
     CUDACameraParams camera_params = camera.CUDAparams();
@@ -75,7 +75,7 @@ int test_aabb_render() {
     // Copy data to device
     box.AABBMemcpyHtD();
     
-    // Define grid and block dimensions - matching crt.cuh
+    // Define grid and block dimensions - matching include/first_crt.cuh
     dim3 blocks(16, 16);
     dim3 grid((IMAGE_WIDTH + blocks.x - 1) / blocks.x, 
               (IMAGE_HEIGHT + blocks.y - 1) / blocks.y);
@@ -103,7 +103,7 @@ int test_aabb_render() {
     // Copy result back to host
     cudaMemcpy(h_image, d_image, IMAGE_WIDTH * IMAGE_HEIGHT * sizeof(Vec3), cudaMemcpyDeviceToHost);
     
-    // Save the image using the crt.cuh approach
+    // Save the image using the include/first_crt.cuh approach
     writeToPPM("aabb_raii_test.ppm", h_image, IMAGE_WIDTH, IMAGE_HEIGHT);
     
     // Clean up

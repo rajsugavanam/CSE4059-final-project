@@ -60,7 +60,7 @@ __device__ float Sampler::noLuminanceIntegral(const ColoredRay& colored_ray, con
     // monte carlo formula = (1/N) \sum_{i=1}^N f(x)/pdf(x) = \int_{\Omega} f(x) dx.
     // NOTE: symbol conventions according to https://en.wikipedia.org/wiki/Monte_Carlo_integration.
     // assume radiance is roughly equal to intensity.
-    float I;
+    float I = 0.0f;
     float V = 2.0f*M_PI/3.0f; // integral of input omega.
 
     unsigned int t = blockDim.x*blockIdx.x + threadIdx.x;

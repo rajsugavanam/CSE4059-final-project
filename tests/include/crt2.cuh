@@ -1,5 +1,5 @@
-#ifndef CRT_CUH
-#define CRT_CUH
+#ifndef FIRST_CRT_CUH
+#define FIRST_CRT_CUH
 
 #include <cuda_runtime.h>
 #include <curand_kernel.h>

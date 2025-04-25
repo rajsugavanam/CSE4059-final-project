@@ -7,7 +7,7 @@
 #include <ostream>
 #include <string>
 
-#include "crt.cuh"
+#include "include/first_crt.cuh"
 // #include "ray.cuh"
 #include "timer.h"
 #include "vec3.cuh"

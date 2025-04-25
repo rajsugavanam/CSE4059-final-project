@@ -11,36 +11,162 @@
 #include "timer.h"
 #include "triangle_mesh.cuh"
 
+// Möller–Trumbore intersection algorithm for TriangleMesh
+// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+__device__ bool rayIntersectsTriangle(const Ray& ray, const TriangleMesh* mesh,
+                                      int tri_id, int tri_idx,
+                                      Vec3& intersection, float& u, float& v,
+                                      float& t) {
+    const float epsilon = 1.19209e-07f;  // float32 machine epsilon ish
+
+    // Store vertex coordinates
+    float v0x = mesh[tri_id].d_v0x[tri_idx];
+    float v0y = mesh[tri_id].d_v0y[tri_idx];
+    float v0z = mesh[tri_id].d_v0z[tri_idx];
+    float v1x = mesh[tri_id].d_v1x[tri_idx];
+    float v1y = mesh[tri_id].d_v1y[tri_idx];
+    float v1z = mesh[tri_id].d_v1z[tri_idx];
+    float v2x = mesh[tri_id].d_v2x[tri_idx];
+    float v2y = mesh[tri_id].d_v2y[tri_idx];
+    float v2z = mesh[tri_id].d_v2z[tri_idx];
+
+    // Get ray components
+    float ray_ox = ray.origin().x();
+    float ray_oy = ray.origin().y();
+    float ray_oz = ray.origin().z();
+    float ray_dx = ray.direction().x();
+    float ray_dy = ray.direction().y();
+    float ray_dz = ray.direction().z();
+
+    // Calculate edges as float components
+    float edge1x = v1x - v0x;
+    float edge1y = v1y - v0y;
+    float edge1z = v1z - v0z;
+    float edge2x = v2x - v0x;
+    float edge2y = v2y - v0y;
+    float edge2z = v2z - v0z;
+    
+    // Calculate ray_cross_e2 components (cross product)
+    float rxe2x = ray_dy * edge2z - ray_dz * edge2y;
+    float rxe2y = ray_dz * edge2x - ray_dx * edge2z;
+    float rxe2z = ray_dx * edge2y - ray_dy * edge2x;
+    
+    // Calculate determinant (dot product)
+    float determinant = edge1x * rxe2x + edge1y * rxe2y + edge1z * rxe2z;
+
+    // Parallel to triangle
+    if (fabsf(determinant) < epsilon) {
+        return false;
+    }
+
+    float inv_determinant = 1.0f / determinant;
+    
+    // Calculate s vector components directly
+    float sx = ray_ox - v0x;
+    float sy = ray_oy - v0y;
+    float sz = ray_oz - v0z;
+    
+    // Calculate dot(s, ray_cross_e2) directly
+    float dot_s_rce2 = sx * rxe2x + sy * rxe2y + sz * rxe2z;
+    u = inv_determinant * dot_s_rce2;
+
+    // Out of bounds
+    if (u < 0.0f || u > 1.0f) {
+        return false;
+    }
+
+    // Calculate s_cross_e1 components directly
+    float scrossex = sy * edge1z - sz * edge1y;
+    float scrossey = sz * edge1x - sx * edge1z;
+    float scrossez = sx * edge1y - sy * edge1x;
+    
+    // Calculate dot(ray.direction(), s_cross_e1) directly
+    float dot_dir_sce1 = ray_dx * scrossex + 
+                          ray_dy * scrossey + 
+                          ray_dz * scrossez;
+    v = inv_determinant * dot_dir_sce1;
+
+    // Out of bounds
+    if (v < 0.0f || u + v > 1.0f) {
+        return false;
+    }
+
+    // Compute t to find intersection point - dot(edge2, s_cross_e1)
+    float dot_e2_sce1 = edge2x * scrossex + edge2y * scrossey + edge2z * scrossez;
+    t = inv_determinant * dot_e2_sce1;
+
+    if (t > epsilon) {
+        // Calculate intersection point directly
+        intersection = Vec3(
+            ray_ox + ray_dx * t,
+            ray_oy + ray_dy * t,
+            ray_oz + ray_dz * t
+        );
+        return true;
+    }
+    return false;
+}
+
 // Color ray based on hit triangle
 // FIRST CHECK AABB, THEN CHECK TRIANGLE
 __device__ Vec3 colorRayTriangle(const Ray& ray, const AABB* boxes, const TriangleMesh* mesh,
-                                  int num_objects) {
-    // Check intersection with any triangle in the array
-    for (int i = 0; i < num_objects; i++) {
-        if (boxes->hitAABB(ray, i)) {
-            // Check intersection with the triangle
-            // if (mesh->hitTriangle(ray, i)) {
-            //     // Return color based on triangle ID
-            //     switch (i % 3) {
-            //         case 0:
-            //             return Vec3(1.0f, 0.0f, 0.0f);  // red
-            //         case 1:
-            //             return Vec3(0.0f, 1.0f, 0.0f);  // green
-            //         default:
-            //             return Vec3(0.0f, 0.0f, 1.0f);  // blue
-            //     }
-            // }
-            return Vec3(1.0f, 0.0f, 0.0f);  // No hit
-        } else {
-            return sky_bg(ray);
+                                  int num_objects, const int* num_triangles) {
+    float closest_t = INFINITY;
+    int hit_obj_id = -1;
+    int hit_tri_idx = -1;
+    Vec3 hit_point;
+    float hit_u, hit_v;
+
+    // Check intersection with any object in the array
+    for (int obj_id = 0; obj_id < num_objects; obj_id++) {
+        // First check AABB hit to avoid unnecessary triangle checks
+        if (boxes->hitAABB(ray, obj_id)) {
+            // Now check all triangles in this mesh
+            for (int tri_idx = 0; tri_idx < num_triangles[obj_id]; tri_idx++) {
+                Vec3 intersection;
+                float u, v, t;
+                
+                // Check intersection with this triangle
+                if (rayIntersectsTriangle(ray, mesh, obj_id, tri_idx, 
+                                        intersection, u, v, t)) {
+                    // Keep track of the closest intersection
+                    if (t < closest_t) {
+                        closest_t = t;
+                        hit_obj_id = obj_id;
+                        hit_tri_idx = tri_idx;
+                        hit_point = intersection;
+                        hit_u = u;
+                        hit_v = v;
+                    }
+                }
+            }
         }
     }
+    
+    // If we hit a triangle, return its color
+    if (hit_obj_id >= 0) {
+        // Get the barycentric coordinates for color interpolation
+        float w = 1.0f - hit_u - hit_v;  // third barycentric coordinate
 
-    return Vec3(0.0f, 0.0f, 1.0f);  // No hit
+        Vec3 normal = Vec3(w * mesh[hit_obj_id].d_n0x[hit_tri_idx] +
+                           hit_u * mesh[hit_obj_id].d_n1x[hit_tri_idx] +
+                           hit_v * mesh[hit_obj_id].d_n2x[hit_tri_idx],
+                           w * mesh[hit_obj_id].d_n0y[hit_tri_idx] +
+                           hit_u * mesh[hit_obj_id].d_n1y[hit_tri_idx] +
+                           hit_v * mesh[hit_obj_id].d_n2y[hit_tri_idx],
+                           w * mesh[hit_obj_id].d_n0z[hit_tri_idx] +
+                           hit_u * mesh[hit_obj_id].d_n1z[hit_tri_idx] +
+                           hit_v * mesh[hit_obj_id].d_n2z[hit_tri_idx]);
 
+        return normalMap(normal);  // Color based on normal
+        // Simple coloring based on object ID and triangle index
+        // return threeColor(hit_obj_id);
+    }
+
+    // No hit, return sky background
+    return skyBg(ray);
 }
 
-// TODO: Add triangle mesh intersection
 __device__ Vec3 colorRayBox(const Ray& ray, const AABB* boxes,
                             int num_objects) {
     // Check intersection with any box in the array
@@ -58,7 +184,7 @@ __device__ Vec3 colorRayBox(const Ray& ray, const AABB* boxes,
         }
     }
     // Background color (gradient from blue to white)
-    return sky_bg(ray);
+    return skyBg(ray);
 }
 
 // Modified kernel to use an array of AABB objects
@@ -89,6 +215,7 @@ __global__ void renderBoxKernel(Vec3* image_buffer,
     }
 }
 
+// AABBB TRIANGLE MESH RENDERING
 __global__ void renderMeshKernel(Vec3* image_buffer, AABB* boxes, TriangleMesh* meshes,
                                  const int num_objects, const int* __restrict__ num_triangles,
                                  const CUDACameraParams camera_params) {
@@ -106,7 +233,7 @@ __global__ void renderMeshKernel(Vec3* image_buffer, AABB* boxes, TriangleMesh* 
         const Vec3 ray_direction = pixel_center - camera_params.center;
 
         Ray ray(camera_params.center, ray_direction);
-        image_buffer[pixel_idx] = colorRayBox(ray, boxes, num_objects);
+        image_buffer[pixel_idx] = colorRayTriangle(ray, boxes, meshes, num_objects, num_triangles);
     }
 }
 
@@ -374,46 +501,10 @@ __host__ void SceneManager::renderMesh() {
     CUDACameraParams camera_params = camera.CUDAparams();
 
     // Define grid and block dimensions
-    dim3 block_dim(16, 16);
+    dim3 block_dim(32, 4); // Adjusted for better warp scheduling / occupancy
     dim3 grid_dim((width + block_dim.x - 1) / block_dim.x,
                   (height + block_dim.y - 1) / block_dim.y);
 
-//     // Launch kernel
-//     std::cout << "Render Parameters: "
-//               << "Width: " << width << ", Height: " << height
-//               << ", Num Objects: " << num_objects << std::endl;
-//     std::cout << "Camera Parameters: "
-//               << "Pixel Width: " << camera_params.pixel_width
-//               << ", Pixel Height: " << camera_params.pixel_height
-//               << ", Pixel00 Location: " << camera_params.pixel00_loc
-//               << ", Delta U: " << camera_params.pixel_delta_u
-//               << ", Delta V: " << camera_params.pixel_delta_v
-//               << ", Camera Center: " << camera_params.center << std::endl;
-              
-//    for (int i = 0; i < num_objects; i++) {
-//         std::cout << "AABB Object ID: " << i << std::endl;
-//         std::cout << "AABB Parameters: "
-//                   << "MinX: " << h_aabb->h_minx[i]
-//                   << ", MinY: " << h_aabb->h_miny[i]
-//                   << ", MinZ: " << h_aabb->h_minz[i]
-//                   << ", MaxX: " << h_aabb->h_maxx[i]
-//                   << ", MaxY: " << h_aabb->h_maxy[i]
-//                   << ", MaxZ: " << h_aabb->h_maxz[i] << std::endl;
-//     }
-//     std::cout << "Triangle Mesh Parameters: "
-//               << "Num Triangles: " << h_mesh[0].num_triangles[obj_id]() << std::endl;
-//     // Print the first few triangles for debugging
-//     const int num_print_tri = std::min(5, h_mesh[0].num_triangles[obj_id]());
-//     std::cout << "Printing first " << num_print_tri << " triangles:" << std::endl;
-//     for (int i = 0; i < num_print_tri; i++) {
-//         std::cout << "Triangle " << i << ": "
-//                   << "V0: (" << h_mesh[0].h_v0x[i] << ", " << h_mesh[0].h_v0y[i]
-//                   << ", " << h_mesh[0].h_v0z[i] << ")"
-//                   << ", V1: (" << h_mesh[0].h_v1x[i] << ", " << h_mesh[0].h_v1y[i]
-//                   << ", " << h_mesh[0].h_v1z[i] << ")"
-//                   << ", V2: (" << h_mesh[0].h_v2x[i] << ", " << h_mesh[0].h_v2y[i]
-//                   << ", " << h_mesh[0].h_v2z[i] << ")" << std::endl;
-//     }
     Timer timer;
     timer.start("Rendering Scene");
     renderMeshKernel<<<grid_dim, block_dim>>>(d_image, d_aabb, d_mesh, 
@@ -421,4 +512,4 @@ __host__ void SceneManager::renderMesh() {
     cudaDeviceSynchronize();
     timer.stop();
     CUDA_CHECK(cudaGetLastError());
-} 
+}

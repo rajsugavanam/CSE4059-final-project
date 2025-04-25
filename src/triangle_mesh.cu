@@ -1,6 +1,6 @@
+#include "obj_reader.cuh"
 #include "reduction.cuh"
 #include "triangle_mesh.cuh"
-#include "obj_reader.cuh"
 
 // TriangleMesh class definition
 
@@ -42,11 +42,11 @@ __host__ TriangleMesh::TriangleMesh()
       d_n1z(nullptr),
       d_n2x(nullptr),
       d_n2y(nullptr),
-      d_n2z(nullptr){}
+      d_n2z(nullptr) {}
 
 // Constructor with number of triangles
 __host__ TriangleMesh::TriangleMesh(int num_triangles)
-    : num_triangles(num_triangles){
+    : num_triangles(num_triangles) {
     mallocTriangleMesh();
     cudaMallocTriangleMesh();
 }
@@ -59,7 +59,7 @@ __host__ TriangleMesh::~TriangleMesh() {
 }
 
 // Allocate host memory
-__host__ void TriangleMesh::mallocTriangleMesh()  {
+__host__ void TriangleMesh::mallocTriangleMesh() {
     if (num_triangles > 0) {
         // Vertices
         h_v0x = new float[num_triangles];
@@ -147,9 +147,10 @@ __host__ void TriangleMesh::cudaMallocTriangleMesh() {
 // CUDA device memory management
 __host__ void TriangleMesh::meshMemcpyHtD() {
     // Safety check - don't try to copy if no triangles or memory not allocated
-    if (num_triangles <= 0 || 
-        h_v0x == nullptr || d_v0x == nullptr) {
-        std::cerr << "Warning: Cannot copy mesh data - no triangles or memory not allocated" << std::endl;
+    if (num_triangles <= 0 || h_v0x == nullptr || d_v0x == nullptr) {
+        std::cerr << "Warning: Cannot copy mesh data - no triangles or memory "
+                     "not allocated"
+                  << std::endl;
         return;
     }
 
@@ -218,62 +219,62 @@ __host__ void TriangleMesh::cudaFreeTriangleMesh() {
 // Load a mesh from an OBJ file
 __host__ TriangleMesh* TriangleMesh::loadFromOBJ(const std::string& filename) {
     std::cout << "Loading mesh from OBJ file: " << filename << std::endl;
-    
+
     // Use the existing ObjReader to parse the file
     ObjReader reader(filename);
     reader.readModel();
-    
+
     // Create a new mesh from the parsed triangles
     TriangleMesh* mesh = new TriangleMesh();
-    
+
     // Get the triangles from the model
     const std::vector<Triangle3>& triangles = reader.parsedModel.modelTriangles;
     int numTriangles = triangles.size();
-    
+
     if (numTriangles == 0) {
         std::cerr << "Error: No triangles found in OBJ file" << std::endl;
         delete mesh;
         return nullptr;
     }
-    
+
     std::cout << "Loaded " << numTriangles << " triangles" << std::endl;
-    
+
     // Initialize the mesh with the correct triangle count
     mesh->num_triangles = numTriangles;
     mesh->mallocTriangleMesh();
-    
+
     // Copy the triangle data
     for (int i = 0; i < numTriangles; i++) {
         // Copy vertices
         mesh->h_v0x[i] = triangles[i].vertex0().x();
         mesh->h_v0y[i] = triangles[i].vertex0().y();
         mesh->h_v0z[i] = triangles[i].vertex0().z();
-        
+
         mesh->h_v1x[i] = triangles[i].vertex1().x();
         mesh->h_v1y[i] = triangles[i].vertex1().y();
         mesh->h_v1z[i] = triangles[i].vertex1().z();
-        
+
         mesh->h_v2x[i] = triangles[i].vertex2().x();
         mesh->h_v2y[i] = triangles[i].vertex2().y();
         mesh->h_v2z[i] = triangles[i].vertex2().z();
-        
+
         // Copy normals
         mesh->h_n0x[i] = triangles[i].normal0().x();
         mesh->h_n0y[i] = triangles[i].normal0().y();
         mesh->h_n0z[i] = triangles[i].normal0().z();
-        
+
         mesh->h_n1x[i] = triangles[i].normal1().x();
         mesh->h_n1y[i] = triangles[i].normal1().y();
         mesh->h_n1z[i] = triangles[i].normal1().z();
-        
+
         mesh->h_n2x[i] = triangles[i].normal2().x();
         mesh->h_n2y[i] = triangles[i].normal2().y();
         mesh->h_n2z[i] = triangles[i].normal2().z();
     }
-    
+
     // Allocate device memory
     mesh->cudaMallocTriangleMesh();
-    
+
     return mesh;
 }
 
@@ -281,17 +282,18 @@ __host__ TriangleMesh* TriangleMesh::loadFromOBJ(const std::string& filename) {
 __host__ void TriangleMesh::computeAABB(AABB* aabb, int obj_id) {
     // If the mesh is empty or aabb is null, return early
     if (num_triangles <= 0 || aabb == nullptr) {
-        std::cerr << "Warning: Empty mesh or null AABB in computeAABB" << std::endl;
+        std::cerr << "Warning: Empty mesh or null AABB in computeAABB"
+                  << std::endl;
         return;
     }
 
     // Allocate arrays for min and max bounds
     float min_bounds[3] = {INFINITY, INFINITY, INFINITY};
     float max_bounds[3] = {-INFINITY, -INFINITY, -INFINITY};
-    
+
     // Use the stream-based reduction function to compute bounds
     computeMeshReductionStreams(this, obj_id, min_bounds, max_bounds);
-    
+
     // Set the min/max values for the bounding box at the specified object ID
     aabb->h_minx[obj_id] = min_bounds[0];
     aabb->h_miny[obj_id] = min_bounds[1];
@@ -300,17 +302,17 @@ __host__ void TriangleMesh::computeAABB(AABB* aabb, int obj_id) {
     aabb->h_maxy[obj_id] = max_bounds[1];
     aabb->h_maxz[obj_id] = max_bounds[2];
 
-    std::cout << "AABB computed for object " << obj_id << ": (" 
-              << min_bounds[0] << ", " << min_bounds[1] << ", " << min_bounds[2] << ") to ("
-              << max_bounds[0] << ", " << max_bounds[1] << ", " << max_bounds[2] << ")" << std::endl;
+    std::cout << "AABB computed for object " << obj_id << ": (" << min_bounds[0]
+              << ", " << min_bounds[1] << ", " << min_bounds[2] << ") to ("
+              << max_bounds[0] << ", " << max_bounds[1] << ", " << max_bounds[2]
+              << ")" << std::endl;
 }
 
 // Get pointers to raw vertex data for direct use in kernels
 __host__ void TriangleMesh::getRawVertexPointers(
-    const float** v0x, const float** v0y, const float** v0z,
-    const float** v1x, const float** v1y, const float** v1z,
-    const float** v2x, const float** v2y, const float** v2z) const {
-    
+    const float** v0x, const float** v0y, const float** v0z, const float** v1x,
+    const float** v1y, const float** v1z, const float** v2x, const float** v2y,
+    const float** v2z) const {
     *v0x = h_v0x;
     *v0y = h_v0y;
     *v0z = h_v0z;
