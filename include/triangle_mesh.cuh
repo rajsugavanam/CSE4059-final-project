@@ -3,8 +3,6 @@
 
 #include <cuda_runtime.h>
 
-#include "triangle3.cuh"
-#include "vec3.cuh"
 #include "aabb.cuh"
 
 class TriangleMesh {
@@ -33,7 +31,7 @@ class TriangleMesh {
     // Compute the AABB and store it in the provided pointer
     __host__ void computeAABB(AABB* aabb, int obj_id);
 
-    // Get raw pointers to vertex data for direct use in kernels
+    // Get raw pointers to vertex data
     __host__ void getRawVertexPointers(
         const float** v0x, const float** v0y, const float** v0z,
         const float** v1x, const float** v1y, const float** v1z,

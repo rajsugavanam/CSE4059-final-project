@@ -1,7 +1,7 @@
 #include <vector>
 #include <random>
 #include <algorithm>
-#include <numeric>
+// #include <numeric>
 
 #include <cuda_runtime.h>
 #include <cuda/std/limits>

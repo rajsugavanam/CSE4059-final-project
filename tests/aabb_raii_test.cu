@@ -2,7 +2,7 @@
 #include "aabb.cuh"
 #include "ray.cuh"
 #include "vec3.cuh"
-#include "cuda_helper.h"
+// #include "cuda_helper.h"
 #include "ray_color.cuh"
 #include "camera.h"
 #include "timer.h"

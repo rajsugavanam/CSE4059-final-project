@@ -1,13 +1,8 @@
-#include <vector>
 #include <iostream>
 
 #include "aabb.cuh"
-#include "cuda_helper.h"
 #include "timer.h"
-#include "triangle3.cuh"
 #include "triangle_mesh.cuh"
-#include "vec3.cuh"
-#include "obj_reader.cuh"
 #include "reduction.cuh"
 
 int main() {
@@ -29,6 +24,7 @@ int main() {
     timer.start("CPU AABB reduction");
     AABB cpuAABB(1);
     cpuAABB.mallocAABB();
+    mesh->meshMemcpyHtD();
     mesh->computeAABB(&cpuAABB, 0);
     timer.stop();
     

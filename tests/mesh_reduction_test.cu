@@ -1,8 +1,8 @@
 #include <vector>
 
-#include "aabb.cuh"
-#include "cuda_helper.h"
-#include "ray_color.cuh"
+// #include "aabb.cuh"
+// #include "cuda_helper.h"
+// #include "ray_color.cuh"
 #include "scene_manager.cuh"
 #include "timer.h"
 #include "triangle3.cuh"
@@ -21,12 +21,13 @@ int main() {
     Timer timer;
     CameraParams params;
     Camera camera(params);
-    SceneManager scene(camera, 1);
+    SceneManager scene(camera, 2);
 
     scene.addTriangleMesh(std::string(PROJECT_ROOT) + "/assets/dk.obj", 0);
+    scene.addTriangleMesh(std::string(PROJECT_ROOT) + "/assets/cornell_box/cornell_box_dk.obj", 1);
     // scene.allocateResources();
     // scene.copyToDevice();
-    scene.render();
+    scene.renderBox();
     scene.copyFromDevice();
     scene.saveImage("mesh_reduction_test.ppm");
     std::cout << "Mesh reduction test completed. Output saved to "

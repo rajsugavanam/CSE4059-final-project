@@ -7,7 +7,6 @@
 
 #include "aabb.cuh"
 #include "camera.h"
-#include "ray.cuh"
 #include "vec3.cuh"
 #include "triangle_mesh.cuh"
 
@@ -36,8 +35,10 @@ class SceneManager {
     __host__ void saveImage(const char* filename);
 
     // Main rendering function
-    __host__ void render();
+    __host__ void renderBox();
+    __host__ void renderMesh();
 
+    // Accessors for quick testing
     __host__ void getAABBBounds(Vec3& min_bounds, Vec3& max_bounds) {
         min_bounds = Vec3(h_aabb->h_minx[0], h_aabb[0].h_miny[0],
                             h_aabb[0].h_minz[0]);
@@ -65,6 +66,8 @@ class SceneManager {
     AABB* d_aabb;  // Device AABB array
 
     // Triangle mesh data
+    int* h_num_triangles;
+    int* d_num_triangles;
     TriangleMesh* h_mesh;
     TriangleMesh* d_mesh;
 

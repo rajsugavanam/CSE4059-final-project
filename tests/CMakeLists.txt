@@ -86,3 +86,15 @@ target_link_libraries(light_samp_test
 add_test(NAME LightSamp.Test
     COMMAND light_samp_test
 )
+
+# Cornell Box Test ------------------------------
+add_executable(cornell_box_test "cornell_box_test.cu")
+target_link_libraries(cornell_box_test
+    aabb
+    reduction
+    triangle_mesh
+    scene_manager
+)
+add_test(NAME CornellBox.Test
+    COMMAND cornell_box_test
+)

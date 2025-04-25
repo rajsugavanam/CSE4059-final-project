@@ -1,11 +1,11 @@
 #include <iostream>
 
 #include "camera.h"
-#include "cuda_helper.h"
-#include "ray.cuh"
+// #include "cuda_helper.h"
+// #include "ray.cuh"
 #include "scene_manager.cuh"
 #include "timer.h"
-#include "vec3.cuh"
+// #include "vec3.cuh"
 
 // AABB render with scene manager
 int test_scene_manager() {
@@ -37,7 +37,7 @@ int test_scene_manager() {
         std::cout << "Starting render..." << std::endl;
         
         // Render the scene
-        scene.render();
+        scene.renderBox();
 
         std::cout << "Copying from device..." << std::endl;
         

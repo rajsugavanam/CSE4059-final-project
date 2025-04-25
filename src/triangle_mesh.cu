@@ -285,15 +285,12 @@ __host__ void TriangleMesh::computeAABB(AABB* aabb, int obj_id) {
         return;
     }
 
-    // Copy mesh data to device before reduction
-    meshMemcpyHtD(); 
-
     // Allocate arrays for min and max bounds
     float min_bounds[3] = {INFINITY, INFINITY, INFINITY};
     float max_bounds[3] = {-INFINITY, -INFINITY, -INFINITY};
     
     // Use the stream-based reduction function to compute bounds
-    computeMeshReductionStreams(this, 0, min_bounds, max_bounds);
+    computeMeshReductionStreams(this, obj_id, min_bounds, max_bounds);
     
     // Set the min/max values for the bounding box at the specified object ID
     aabb->h_minx[obj_id] = min_bounds[0];
