@@ -1,4 +1,5 @@
 #include "light_sampling.cuh"
+#include <math.h>
 
 #define CURAND_SEED 12312
 
@@ -20,7 +21,7 @@ __global__ void kerCosineRng(float* values, curandState* curand_state, int pix_h
     }
     unsigned int t = pix_width*ty + tx;
     float uniform_value = curand_uniform(&curand_state[t]);
-    float transformed = asin(2*uniform_value-1);
+    float transformed = asinf(2*uniform_value-1);
     values[t] = transformed;
 }
 
@@ -28,10 +29,14 @@ __global__ void kerCosineRng(float* values, curandState* curand_state, int pix_h
 //                  const Vec3& bary_hit_point)
 //     : input_ray{input_ray}, hit_tri{hit_tri}, bary_hit_point{bary_hit_point} {}
 
-Sampler::Sampler(int kernel_block_size, int pix_width, int pix_height) : KERNEL_BLOCK_SIZE(kernel_block_size), pix_width(pix_width), pix_height(pix_height) {}
+Sampler::Sampler(int kernel_block_size, int monte_carlo_samples, int pix_width, int pix_height)
+    : KERNEL_BLOCK_SIZE(kernel_block_size), monte_carlo_samples(monte_carlo_samples),
+      pix_width(pix_width), pix_height(pix_height) {}
 
 Sampler::~Sampler() {
-    cudaFree(d_curandstate);
+    if (d_curandstate != nullptr) {
+        cudaFree(d_curandstate); // RAII?
+    }
 }
 
 curandState* Sampler::initRng() {
@@ -45,7 +50,34 @@ curandState* Sampler::initRng() {
 }
 
 __device__ float Sampler::pixCosineRng(unsigned int t_idx) {
+    // https://en.wikipedia.org/wiki/Inverse_transform_sampling
     float uniform = curand_uniform(&d_curandstate[t_idx]);
     float transformed = asin(2*uniform-1);
     return transformed;
+}
+
+__device__ float Sampler::noLuminanceIntegral(const ColoredRay& colored_ray, const Vec3& bary_hit_point, Triangle3* hit_tri) {
+    // monte carlo formula = (1/N) \sum_{i=1}^N f(x)/pdf(x) = \int_{\Omega} f(x) dx.
+    // NOTE: symbol conventions according to https://en.wikipedia.org/wiki/Monte_Carlo_integration.
+    // assume radiance is roughly equal to intensity.
+    float I;
+    float V = 2.0f*M_PI/3.0f; // integral of input omega.
+
+    unsigned int t = blockDim.x*blockIdx.x + threadIdx.x;
+
+    for (int i=0; i<monte_carlo_samples; i++) {
+        // add integrand.
+        float cosine = pixCosineRng(t);
+        float theta = curand_uniform(&d_curandstate[t]);
+        float rho = acosf(cosine);
+        float horiz_mag = sinf(rho);
+
+        float x = horiz_mag*cosf(theta);
+        float z = horiz_mag*sinf(theta);
+
+        Vec3 omega_i(x, cosine, z);
+    }
+
+    I = I*(V/((float)monte_carlo_samples));
+    return I;
 }
