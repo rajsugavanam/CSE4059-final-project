@@ -4,7 +4,7 @@
 #include "camera.h"
 #include "scene_manager.cuh"
 #include "timer.h"
-#include "cuda_helper.h"
+// #include "cuda_helper.h"
 
 extern __constant__ Material c_materials[256];
 
@@ -36,8 +36,8 @@ int main() {
     }
 
     // Copy constant material to c_materials
-    CUDA_CHECK(cudaMemcpyToSymbol(c_materials, scene.materials,
-        sizeof(Material) * list_size));
+    // CUDA_CHECK(cudaMemcpyToSymbol(c_materials, scene.materials,
+    //     sizeof(Material) * list_size));
 
     scene.renderMesh();
 
