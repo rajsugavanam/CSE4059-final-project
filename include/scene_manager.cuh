@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "vec3.cuh"
 #include "triangle_mesh.cuh"
+#include "material.cuh"
 
 class SceneManager {
    public:
@@ -24,6 +25,8 @@ class SceneManager {
     __host__ void addAABB(float minx, float miny, float minz, float maxx,
                           float maxy, float maxz, int obj_id);
     __host__ void addTriangleMesh(const std::string& filename, int obj_id = 0);
+    __host__ void addTriangleMeshColor(const std::string& filename, float3 albedo,
+                                            int obj_id); 
 
     // Resource management
     __host__ void allocateResources();
@@ -51,7 +54,7 @@ class SceneManager {
     __host__ int getHeight() const { return height; }
     __host__ int getNumObj() const { return num_objects; }
 
-   private:
+   public:
     // Store a reference to the camera
     Camera& camera;
 
@@ -70,7 +73,8 @@ class SceneManager {
     int* d_num_triangles;
     TriangleMesh* h_mesh;
     TriangleMesh* d_mesh;
-
-
+    
+    // Object material properties
+    Material materials[256]; 
 };
 #endif  // SCENE_MANAGER_CUH

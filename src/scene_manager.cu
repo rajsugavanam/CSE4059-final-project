@@ -11,6 +11,8 @@
 #include "timer.h"
 #include "triangle_mesh.cuh"
 
+__constant__ Material c_materials[256];
+
 // Möller–Trumbore intersection algorithm for TriangleMesh
 // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 __device__ bool rayIntersectsTriangle(const Ray& ray, const TriangleMesh* mesh,
@@ -158,7 +160,8 @@ __device__ Vec3 colorRayTriangle(const Ray& ray, const AABB* boxes, const Triang
                            hit_u * mesh[hit_obj_id].d_n1z[hit_tri_idx] +
                            hit_v * mesh[hit_obj_id].d_n2z[hit_tri_idx]);
 
-        return normalMap(normal);  // Color based on normal
+        return Vec3(c_materials[hit_obj_id].albedo.x, c_materials[hit_obj_id].albedo.y, c_materials[hit_obj_id].albedo.z);
+        // return normalMap(normal);  // Color based on normal
         // Simple coloring based on object ID and triangle index
         // return threeColor(hit_obj_id);
     }
@@ -353,6 +356,12 @@ __host__ void SceneManager::addTriangleMesh(const std::string& filename,
     std::cout << "Mesh loaded with " << h_mesh[obj_id].numTriangles()
               << " triangles and added to scene as object " << obj_id
               << std::endl;
+}
+
+__host__ void SceneManager::addTriangleMeshColor(const std::string& filename, float3 albedo,
+                                            int obj_id) {
+    addTriangleMesh(filename, obj_id);
+    materials[obj_id].albedo = albedo;
 }
 
 // Allocate GPU resources
