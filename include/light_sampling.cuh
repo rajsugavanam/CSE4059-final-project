@@ -2,7 +2,7 @@
 #define CUH_LIGHT_SAMPLING
 
 #include "ray.cuh"
-#include "triangle3.cuh"
+#include "triangle_mesh.cuh"
 #include "vec3.cuh"
 #include <curand_kernel.h>
 
@@ -18,6 +18,7 @@ struct ColoredRay {
     Ray ray;
 };
 
+// TODO: Rename to PathTracer!
 class Sampler {
     private:
         // const Vec3& input_ray, bary_hit_point;
@@ -27,6 +28,11 @@ class Sampler {
         int pix_width, pix_height;
         int monte_carlo_samples;
 
+        TriangleMesh* d_mesh;
+        const AABB* boxes;
+        int num_objects;
+        const int* num_triangles;
+
         curandState* initRng();
         __device__ float pixCosineRng(unsigned int t_idx);
         // https://en.wikipedia.org/wiki/Rendering_equation
@@ -34,11 +40,14 @@ class Sampler {
         // colored_ray contains lambda and omega_i. (in essence)
         // bary_hit_point will be converted to x, given the triangle the coordinates are for.
         // omega_o is SAMPLED via Monte Carlo methods.
-        __device__ float noLuminanceIntegral(const ColoredRay& colored_ray, const Vec3& bary_hit_point, Triangle3* hit_tri);
+        __device__ Vec3 colorPathTrace(const Ray& omega_i);
 
     public:
         Sampler(int kernel_block_size, int monte_carlo_samples, int pix_width, int pix_height);
         ~Sampler();
+
+        __device__ Vec3 noLuminanceIntegral(const Vec3& intersection_point);
+        __device__ void setGPUInputs(TriangleMesh* d_mesh, const AABB* boxes, int num_objects, const int* num_triangles);
 };
 
 #endif

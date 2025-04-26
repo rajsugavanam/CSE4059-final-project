@@ -123,7 +123,6 @@ __device__ Vec3 colorRay(const Ray& ray, Triangle3* triangles,
                          v * hit_triangle.normal2();
 
         // for (int diffuseIdx)
-        // TODO: replace with "monte carlo" method for loop thing
         // simple lambertian diffuse
         Vec3 light = unit_vector(Vec3(0.0f, 5.0f, -5.0f) - tri_intersect);
         // just whiteCol color for now... use texture norm
@@ -149,7 +148,6 @@ __device__ Vec3 colorRay(const Ray& ray, Triangle3* triangles,
     }
 }
 
-// TODO: use structs here
 __global__ void rayRender(Vec3* image_buffer, Triangle3* triangle_mesh,
                           int num_triangles, CUDACameraParams camera_params) {
 

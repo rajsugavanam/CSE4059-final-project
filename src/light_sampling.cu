@@ -56,28 +56,49 @@ __device__ float Sampler::pixCosineRng(unsigned int t_idx) {
     return transformed;
 }
 
-__device__ float Sampler::noLuminanceIntegral(const ColoredRay& colored_ray, const Vec3& bary_hit_point, Triangle3* hit_tri) {
+__device__ void Sampler::setGPUInputs(TriangleMesh* d_mesh, const AABB* boxes, int num_objects, const int* num_triangles) {
+    this->d_mesh = d_mesh;
+    this->boxes = boxes;
+    this->num_objects = num_objects;
+    this->num_triangles = num_triangles;
+}
+
+__device__ Vec3 Sampler::noLuminanceIntegral(const Vec3& intersection_point) {
     // monte carlo formula = (1/N) \sum_{i=1}^N f(x)/pdf(x) = \int_{\Omega} f(x) dx.
     // NOTE: symbol conventions according to https://en.wikipedia.org/wiki/Monte_Carlo_integration.
     // assume radiance is roughly equal to intensity.
-    float I = 0.0f;
+    Vec3 I(0.0f,0.0f,0.0f);
     float V = 2.0f*M_PI/3.0f; // integral of input omega.
 
     unsigned int t = blockDim.x*blockIdx.x + threadIdx.x;
 
     for (int i=0; i<monte_carlo_samples; i++) {
-        // add integrand.
         float cosine = pixCosineRng(t);
         float theta = curand_uniform(&d_curandstate[t]);
         float rho = acosf(cosine);
-        float horiz_mag = sinf(rho);
+        float horiz_mag = __sinf(rho);
 
-        float x = horiz_mag*cosf(theta);
-        float z = horiz_mag*sinf(theta);
+        float x = horiz_mag*__cosf(theta);
+        float z = horiz_mag*__sinf(theta);
 
-        Vec3 omega_i(x, cosine, z);
+        // TODO: get color as a function of omega_i. this will consider omega_i's bounce and, if it hits another
+        // triangle, recursively calls noLuminanceIntegral, using its return value as omega_i's color. This will
+        // be added to the integrand I.
+
+        Vec3 omega_i_vec(x, cosine, z);
+        Ray omega_i(
+            intersection_point,
+            omega_i_vec
+        );
+        Vec3 omega_i_result_color = colorPathTrace(omega_i);
+        // add integrand.
+        I += f_r*omega_i_result_color;
+
     }
 
     I = I*(V/((float)monte_carlo_samples));
     return I;
+}
+
+__device__ Vec3 Sampler::colorPathTrace(const Ray& omega_i) {
 }
