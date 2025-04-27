@@ -1,18 +1,81 @@
-// #include <fstream>
 #include <iostream>
 
 #include "camera.h"
+#include "crt.cuh"
 #include "cuda_helper.h"
 #include "image_writer.h"
 #include "model.cuh"
 #include "obj_reader.cuh"
-// #include "ray_color.cuh"
 #include "scene_manager.cuh"
 #include "timer.h"
 #include "triangle_mesh.cuh"
-#include "crt.cuh"
+#include "util/cb_light_spectrum.h"
+#include "util/cb_spectrum.h"
+#include "util/cie_spectrum.h"
 
-extern __constant__ Material c_materials[256];
+// Define the constant memory variables here once (extern everywhere else)
+__constant__ Material c_materials[256];
+__constant__ float3 c_cieXYZ[301];
+__constant__ float3 c_cieXYZ_to_sRGB[3];
+__constant__ float c_white_reflectance[301];
+__constant__ float c_green_reflectance[301];
+__constant__ float c_red_reflectance[301];
+__constant__ float c_light_emission[301];
+__constant__ float c_light_reflectance[301];
+
+__host__ SceneManager::SceneManager(Camera& camera, int num_objects)
+    : camera(camera),
+      width(camera.pixelWidth()),
+      height(camera.pixelHeight()),
+      num_objects(num_objects),
+      h_image(nullptr),
+      d_image(nullptr),
+      h_aabb(nullptr),
+      d_aabb(nullptr),
+      h_num_triangles(nullptr),
+      d_num_triangles(nullptr),
+      h_mesh(nullptr),
+      d_mesh(nullptr) {
+    allocateResources();
+
+    std::cout << "Scene dimensions: " << width << "x" << height << std::endl;
+}
+
+// Destructor - automatically free resources (RAII)
+__host__ SceneManager::~SceneManager() {
+    std::cout << "Freeing resources..." << std::endl;
+    freeResources();
+}
+
+// Initialize spectral data in constant memory
+__host__ void SceneManager::initializeSpectra() {
+    std::cout << "Initializing spectral data..." << std::endl;
+
+    // Copy spectral data directly from the header file constants to GPU
+    // constant memory
+    CUDA_CHECK(cudaMemcpyToSymbol(
+        c_white_reflectance, WHITE_REFLECTANCE_SPECTRUM, 301 * sizeof(float)));
+
+    CUDA_CHECK(cudaMemcpyToSymbol(
+        c_green_reflectance, GREEN_REFLECTANCE_SPECTRUM, 301 * sizeof(float)));
+
+    CUDA_CHECK(cudaMemcpyToSymbol(c_red_reflectance, RED_REFLECTANCE_SPECTRUM,
+                                  301 * sizeof(float)));
+
+    CUDA_CHECK(cudaMemcpyToSymbol(c_light_emission, LIGHT_EMISSION_SPECTRUM,
+                                  301 * sizeof(float)));
+
+    CUDA_CHECK(cudaMemcpyToSymbol(
+        c_light_reflectance, LIGHT_REFLECTANCE_SPECTRUM, 301 * sizeof(float)));
+
+    CUDA_CHECK(cudaMemcpyToSymbol(c_cieXYZ, CIE_COLOR_MATCHING_FUNCTIONS,
+                                  301 * sizeof(float3)));
+
+    CUDA_CHECK(cudaMemcpyToSymbol(c_cieXYZ_to_sRGB, CIE_XYZ_TO_SRGB,
+                                  3 * sizeof(float3)));
+
+    std::cout << "Spectral data initialization complete." << std::endl;
+}
 
 // Add an AABB to the scene
 __host__ void SceneManager::addAABB(float minx, float miny, float minz,
@@ -60,10 +123,10 @@ __host__ void SceneManager::addTriangleMesh(const std::string& filename,
         return;
     }
 
-    std::cout << "Successfully loaded " << h_num_triangles[obj_id] << " triangles from "
-              << filename << std::endl;
+    std::cout << "Successfully loaded " << h_num_triangles[obj_id]
+              << " triangles from " << filename << std::endl;
 
-    // Clear previous mesh data at this index 
+    // Clear previous mesh data at this index
     h_mesh[obj_id].~TriangleMesh();
 
     // Initialize a new mesh at this index
@@ -108,10 +171,38 @@ __host__ void SceneManager::addTriangleMesh(const std::string& filename,
               << std::endl;
 }
 
-__host__ void SceneManager::addTriangleMeshColor(const std::string& filename, float3 albedo,
-                                            int obj_id) {
+// Old function to add triangle mesh with color
+__host__ void SceneManager::addTriangleMeshColor(const std::string& filename,
+                                                 float3 albedo, int obj_id) {
     addTriangleMesh(filename, obj_id);
     materials[obj_id].albedo = albedo;
+}
+
+// New function to add triangle mesh with spectral properties
+__host__ void SceneManager::addTriangleMeshSpectrum(const std::string& filename,
+                                                    int spectral_reflectance_id,
+                                                    int spectral_emission_id,
+                                                    bool is_emissive,
+                                                    int obj_id) {
+    // Add the mesh geometry first
+    addTriangleMesh(filename, obj_id);
+
+    // Then set the spectral material properties
+    materials[obj_id].spectral_reflectance_id = spectral_reflectance_id;
+    materials[obj_id].spectral_emission_id = spectral_emission_id;
+    materials[obj_id].is_emissive = is_emissive;
+    materials[obj_id].type =
+        is_emissive ? MaterialType::EMISSIVE : MaterialType::DIFFUSE;
+
+    // Default values for other material properties
+    materials[obj_id].roughness = 0.0f;
+    materials[obj_id].ior = 1.5f;
+
+    // For emissive materials, set the albedo to be high for regular rendering
+    // path
+    if (is_emissive) {
+        materials[obj_id].albedo = make_float3(10.0f, 10.0f, 10.0f);
+    }
 }
 
 // Allocate GPU resources
@@ -260,18 +351,57 @@ __host__ void SceneManager::renderMesh() {
     CUDACameraParams camera_params = camera.CUDAparams();
 
     CUDA_CHECK(cudaMemcpyToSymbol(c_materials, materials,
-        sizeof(Material) * num_objects));
+                                  sizeof(Material) * num_objects));
 
     // Define grid and block dimensions
-    dim3 block_dim(32, 4); // Adjusted for better warp scheduling / occupancy
+    dim3 block_dim(32, 4);  // Adjusted for better warp scheduling / occupancy
     dim3 grid_dim((width + block_dim.x - 1) / block_dim.x,
                   (height + block_dim.y - 1) / block_dim.y);
 
     Timer timer;
     timer.start("Rendering Scene");
-    renderMeshKernel<<<grid_dim, block_dim>>>(d_image, d_aabb, d_mesh, 
-                                              num_objects, d_num_triangles, camera_params);
+    renderMeshKernel<<<grid_dim, block_dim>>>(
+        d_image, d_aabb, d_mesh, num_objects, d_num_triangles, camera_params);
     cudaDeviceSynchronize();
     timer.stop();
     CUDA_CHECK(cudaGetLastError());
+}
+
+__host__ void SceneManager::renderSpectralMesh(int samples_per_pixel) {
+    // Get camera parameters from the stored reference
+    CUDACameraParams camera_params = camera.CUDAparams();
+
+    // Copy material data to constant memory
+    CUDA_CHECK(cudaMemcpyToSymbol(c_materials, materials,
+                                  sizeof(Material) * num_objects));
+
+    // Copies all the spectral data to constant memory
+    initializeSpectra();
+
+    // Define grid and block dimensions
+    dim3 block_dim(16, 8);  // 128 threads per block
+    dim3 grid_dim((width + block_dim.x - 1) / block_dim.x,
+                  (height + block_dim.y - 1) / block_dim.y);
+
+    Timer timer;
+    timer.start("Rendering Spectral Scene");
+
+    // Set seed here for now
+    // unsigned int seed = static_cast<unsigned int>(time(nullptr)); // Random
+    unsigned int seed = 1337;  // Fixed
+
+    renderSpectralMeshKernel<<<grid_dim, block_dim>>>(
+        d_image, d_aabb, d_mesh, num_objects, d_num_triangles, camera_params,
+        samples_per_pixel, seed);
+
+    cudaDeviceSynchronize();
+    timer.stop();
+    CUDA_CHECK(cudaGetLastError());
+}
+
+// Get AABB bounds for all objects
+__host__ void SceneManager::getAABBBounds(Vec3& min_bounds, Vec3& max_bounds) {
+    // Get the min and max bounds from the AABB object
+    min_bounds = Vec3(h_aabb->h_minx[0], h_aabb->h_miny[0], h_aabb->h_minz[0]);
+    max_bounds = Vec3(h_aabb->h_maxx[0], h_aabb->h_maxy[0], h_aabb->h_maxz[0]);
 }

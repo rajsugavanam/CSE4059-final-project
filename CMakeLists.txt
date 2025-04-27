@@ -35,9 +35,9 @@ include_directories(
 )
 
 # LIBRARIES ------------------------------
-add_library(light_sampling STATIC
-    src/light_sampling.cu
-)
+# add_library(light_sampling STATIC
+#     src/light_sampling.cu
+# )
 # If you want to remove global include || target properties
 # target_include_directories(reduction PUBLIC include)
 #
@@ -81,6 +81,19 @@ target_link_libraries(reduction
 # add_executable(${PROJECT_NAME} "src/ray_tracer.cu")
 # Linking libraries
 # target_link_libraries(${PROJECT_NAME} reduction)
+# add_executable(${PROJECT_NAME} "src/crt.cu")
+# target_link_libraries(${PROJECT_NAME}
+#     reduction
+#     aabb
+#     triangle_mesh
+#     scene_manager
+#     # light_sampling
+# )
+# target_include_directories(${PROJECT_NAME} PUBLIC
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include/util
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include/pathtracer
+# )
 
 # TESTS ------------------------------
 enable_testing()

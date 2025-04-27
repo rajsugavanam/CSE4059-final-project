@@ -31,3 +31,6 @@ lib*
 # js stuff
 rebuild.sh
 .vscode
+
+# python stuff for spectrum
+spectra_env

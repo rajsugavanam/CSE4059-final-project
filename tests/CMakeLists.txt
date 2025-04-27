@@ -60,6 +60,10 @@ target_link_libraries(scene_manager_test
     scene_manager
     reduction
 )
+target_include_directories(scene_manager_test
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include/util
+)
 add_test(NAME Scene.Manager.RAII
     COMMAND scene_manager_test
 )
@@ -71,6 +75,10 @@ target_link_libraries(mesh_reduction_test
     reduction
     triangle_mesh
     scene_manager
+)
+target_include_directories(mesh_reduction_test
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include/util
 )
 add_test(NAME Mesh.Reduce.AABB
     COMMAND mesh_reduction_test
@@ -85,13 +93,13 @@ add_test(NAME Reduce.Benchmark
     COMMAND reduction_benchmark
 )
 # LIGHT SAMPLING TEST ------------------------------
-add_executable(light_samp_test "light_sampling_test.cu")
-target_link_libraries(light_samp_test
-    light_sampling
-)
-add_test(NAME LightSamp.Test
-    COMMAND light_samp_test
-)
+# add_executable(light_samp_test "light_sampling_test.cu")
+# target_link_libraries(light_samp_test
+#     light_sampling
+# )
+# add_test(NAME LightSamp.Test
+#     COMMAND light_samp_test
+# )
 
 # Cornell Box Test ------------------------------
 add_executable(cornell_box_test "cornell_box_test.cu")
@@ -115,4 +123,20 @@ target_link_libraries(mesh_vec_test
 )
 add_test(NAME TriangleMesh.Vec
     COMMAND mesh_vec_test
+)
+
+# CORNELL BOX SPECTRAL TEST ------------------------------
+add_executable(cornell_box_spectral_test "cornell_box_spectral_test.cu")
+target_link_libraries(cornell_box_spectral_test
+    aabb
+    reduction
+    triangle_mesh
+    scene_manager
+)
+target_include_directories(cornell_box_spectral_test
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include/util
+)
+add_test(NAME CornellBox.Spectral
+    COMMAND cornell_box_spectral_test
 )
