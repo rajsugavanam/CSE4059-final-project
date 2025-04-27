@@ -193,11 +193,6 @@ __host__ void SceneManager::addTriangleMeshSpectrum(const std::string& filename,
     materials[obj_id].is_emissive = is_emissive;
     materials[obj_id].type =
         is_emissive ? MaterialType::EMISSIVE : MaterialType::DIFFUSE;
-
-    // Default values for other material properties
-    materials[obj_id].roughness = 0.0f;
-    materials[obj_id].ior = 1.5f;
-
     // For emissive materials, set the albedo to be high for regular rendering
     // path
     if (is_emissive) {

@@ -15,9 +15,6 @@ struct Material {
     int spectral_emission_id;      // ID for spectral emission
     bool is_emissive;              // 0 = false, 1 = true
     MaterialType type;             // Material type enumeration
-    float roughness;               // Surface roughness (0 = perfectly smooth)
-    float ior;                     // Index of refraction for transparent materials
-    float padding;                 // Padding for alignment (32 bytes total)
 };
 
 #endif // MATERIAL_CUH

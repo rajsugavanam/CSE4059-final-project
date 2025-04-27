@@ -8,11 +8,15 @@
 #include "material.cuh"
 
 // Spectral material IDs
-enum SpectralMaterialID {
+enum ReflectanceID {
     WHITE = 0,
     RED = 1,
     GREEN = 2,
     LIGHT = 3
+};
+
+enum EmissionID {
+    LIGHT_EMISSION
 };
 
 int main() {
@@ -27,7 +31,7 @@ int main() {
 
     // Define spectral material assignments
     std::vector<int> spectral_reflectance_ids = {
-        WHITE, WHITE, RED, WHITE, GREEN, WHITE, WHITE
+        LIGHT, WHITE, RED, WHITE, GREEN, WHITE, WHITE
     };
     
     // Define emission status
@@ -37,7 +41,7 @@ int main() {
 
     // Define emission spectrum IDs
     std::vector<int> spectral_emission_ids = {
-        LIGHT, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE
+        LIGHT_EMISSION, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE
     };
 
     // Camera setup with Cornell box parameters

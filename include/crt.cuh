@@ -240,10 +240,9 @@ __global__ void renderMeshKernel(Vec3* image_buffer, AABB* boxes,
     }
 }
 
-// Get a spectrum based on material ID
-__device__ SampledSpectrum getMaterialSpectrum(int material_id,
-                                               int spectrum_id) {
-    switch (spectrum_id) {
+// Get material reflectance spectrum based on ID
+__device__ SampledSpectrum getMaterialReflectanceSpectrum(int reflectance_id) {
+    switch (reflectance_id) {
         case 0:  // WHITE
             return SampledSpectrum::WhiteReflectance();
         case 1:  // RED
@@ -251,9 +250,17 @@ __device__ SampledSpectrum getMaterialSpectrum(int material_id,
         case 2:  // GREEN
             return SampledSpectrum::GreenReflectance();
         case 3:  // LIGHT
-            return SampledSpectrum::LightEmission();
+            return SampledSpectrum::LightReflectance();
         default:
             return SampledSpectrum::WhiteReflectance();
+    }
+}
+
+// Get material emission spectrum based on ID
+__device__ SampledSpectrum getMaterialEmissionSpectrum(int emission_id) {
+    switch (emission_id) {
+        default:
+            return SampledSpectrum::LightEmission();
     }
 }
 
@@ -368,7 +375,7 @@ __device__ bool spectralTracePath(const Ray& primary_ray, const AABB* boxes,
         if (mat.is_emissive) {
             // Sample the emission spectrum
             SampledSpectrum emission =
-                getMaterialSpectrum(hit_obj_id, mat.spectral_emission_id);
+                getMaterialEmissionSpectrum(mat.spectral_emission_id);
             // Multiply by the accumulated throughput
             spectrum = emission * throughput;
             return true;
@@ -376,7 +383,7 @@ __device__ bool spectralTracePath(const Ray& primary_ray, const AABB* boxes,
 
         // Get the reflectance spectrum of this material
         SampledSpectrum reflectance =
-            getMaterialSpectrum(hit_obj_id, mat.spectral_reflectance_id);
+            getMaterialReflectanceSpectrum(mat.spectral_reflectance_id);
 
         // Update throughput with the reflectance at this wavelength
         throughput = throughput * reflectance;
