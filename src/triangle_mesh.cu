@@ -55,7 +55,7 @@ __host__ TriangleMesh::~TriangleMesh() {
     freeTriangleMesh();
     cudaFreeTriangleMesh();
 
-    std::cout << "TriangleMesh destructor called" << std::endl;
+    // std::cout << "TriangleMesh destructor called" << std::endl;
 }
 
 // Allocate host memory
@@ -218,7 +218,7 @@ __host__ void TriangleMesh::cudaFreeTriangleMesh() {
 
 // Load a mesh from an OBJ file
 __host__ TriangleMesh* TriangleMesh::loadFromOBJ(const std::string& filename) {
-    std::cout << "Loading mesh from OBJ file: " << filename << std::endl;
+    // std::cout << "Loading mesh from OBJ file: " << filename << std::endl;
 
     // Use the existing ObjReader to parse the file
     ObjReader reader(filename);
@@ -302,10 +302,10 @@ __host__ void TriangleMesh::computeAABB(AABB* aabb, int obj_id) {
     aabb->h_maxy[obj_id] = max_bounds[1];
     aabb->h_maxz[obj_id] = max_bounds[2];
 
-    std::cout << "AABB computed for object " << obj_id << ": (" << min_bounds[0]
-              << ", " << min_bounds[1] << ", " << min_bounds[2] << ") to ("
-              << max_bounds[0] << ", " << max_bounds[1] << ", " << max_bounds[2]
-              << ")" << std::endl;
+    // std::cout << "AABB computed for object " << obj_id << ": (" << min_bounds[0]
+    //           << ", " << min_bounds[1] << ", " << min_bounds[2] << ") to ("
+    //           << max_bounds[0] << ", " << max_bounds[1] << ", " << max_bounds[2]
+    //           << ")" << std::endl;
 }
 
 // Get pointers to raw vertex data for direct use in kernels

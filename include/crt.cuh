@@ -440,7 +440,8 @@ __global__ void renderSpectralMeshKernel(Vec3* image_buffer, AABB* boxes,
                                          const int* __restrict__ num_triangles,
                                          const CUDACameraParams camera_params,
                                          const int samples_per_pixel,
-                                         unsigned int rand_seed) {
+                                         unsigned int rand_seed,
+                                         volatile int* progress) {
     unsigned int col = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int row = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -459,8 +460,9 @@ __global__ void renderSpectralMeshKernel(Vec3* image_buffer, AABB* boxes,
     // For each sample
     for (int s = 0; s < samples_per_pixel; s++) {
         // Jitter the pixel location for anti-aliasing
-        float offset_u = randomFloat(&seed);
-        float offset_v = randomFloat(&seed);
+        // by offsetting [-0.5, 0.5]
+        float offset_u = randomFloat(&seed) - 0.5f;
+        float offset_v = randomFloat(&seed) - 0.5f;
 
         // Calculate ray for this sample
         const Vec3 pixel_center =
@@ -506,6 +508,25 @@ __global__ void renderSpectralMeshKernel(Vec3* image_buffer, AABB* boxes,
 
     // Store the final color
     image_buffer[pixel_idx] = Vec3(pixel_color.x, pixel_color.y, pixel_color.z);
+
+    // Progress bar update
+    // Update progress per row of blocks to minimize atomics
+    if (threadIdx.x == 0 && threadIdx.y == 0) {
+        // Store this block's linear ID
+        int block_id = blockIdx.y * gridDim.x + blockIdx.x;
+        
+        // Only update progress when larger row of blocks completes
+        if (block_id % 16 == 0) {  // Adjust the value based on your grid dimensions
+            atomicAdd((int*)progress, 1);
+        }
+
+        // Update progress bar to 100% when all blocks are done for nice output
+        if (block_id == gridDim.x * gridDim.y - 1) {
+            // Set to final value to ensure completion
+            atomicExch((int*)progress, (gridDim.x * gridDim.y + 15) / 16);
+        }
+
+    }
 }
 
 #endif  // CRT_CUH

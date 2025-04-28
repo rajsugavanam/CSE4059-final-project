@@ -24,7 +24,7 @@ __host__ AABB::AABB(int num_obj) : num_obj(num_obj) {
 __host__ AABB::~AABB() {
     freeAABB();
     cudaFreeAABB();
-    std::cout << "AABB destructor called" << std::endl;
+    // std::cout << "AABB destructor called" << std::endl;
 }
 
 __host__ void AABB::mallocAABB() {

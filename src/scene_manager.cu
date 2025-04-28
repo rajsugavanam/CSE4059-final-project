@@ -1,4 +1,8 @@
+#include <cuda_runtime.h>
+
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 #include "camera.h"
 #include "crt.cuh"
@@ -49,7 +53,7 @@ __host__ SceneManager::~SceneManager() {
 
 // Initialize spectral data in constant memory
 __host__ void SceneManager::initializeSpectra() {
-    std::cout << "Initializing spectral data..." << std::endl;
+    // std::cout << "Initializing spectral data..." << std::endl;
 
     // Copy spectral data directly from the header file constants to GPU
     // constant memory
@@ -74,7 +78,7 @@ __host__ void SceneManager::initializeSpectra() {
     CUDA_CHECK(cudaMemcpyToSymbol(c_cieXYZ_to_sRGB, CIE_XYZ_TO_SRGB,
                                   3 * sizeof(float3)));
 
-    std::cout << "Spectral data initialization complete." << std::endl;
+    // std::cout << "Spectral data initialization complete." << std::endl;
 }
 
 // Add an AABB to the scene
@@ -90,16 +94,16 @@ __host__ void SceneManager::addAABB(float minx, float miny, float minz,
     h_aabb->h_maxz[obj_id] = maxz;
     h_aabb->num_obj = num_objects;
 
-    std::cout << "Added AABB box: (" << minx << ", " << miny << ", " << minz
-              << ") to (" << maxx << ", " << maxy << ", " << maxz << ")"
-              << " :: Number of Objects: " << obj_id + 1 << std::endl;
+    // std::cout << "Added AABB box: (" << minx << ", " << miny << ", " << minz
+    //           << ") to (" << maxx << ", " << maxy << ", " << maxz << ")"
+    //           << " :: Number of Objects: " << obj_id + 1 << std::endl;
 }
 
 // Add triangle mesh from OBJ file
 __host__ void SceneManager::addTriangleMesh(const std::string& filename,
                                             int obj_id) {
-    std::cout << "Loading triangle mesh from: " << filename
-              << " for object ID: " << obj_id << std::endl;
+    // std::cout << "Loading triangle mesh from: " << filename
+    //           << " for object ID: " << obj_id << std::endl;
 
     // Check if object ID is valid
     if (obj_id < 0 || obj_id >= num_objects) {
@@ -123,8 +127,8 @@ __host__ void SceneManager::addTriangleMesh(const std::string& filename,
         return;
     }
 
-    std::cout << "Successfully loaded " << h_num_triangles[obj_id]
-              << " triangles from " << filename << std::endl;
+    // std::cout << "Successfully loaded " << h_num_triangles[obj_id]
+    //           << " triangles from " << filename << std::endl;
 
     // Clear previous mesh data at this index
     h_mesh[obj_id].~TriangleMesh();
@@ -166,9 +170,9 @@ __host__ void SceneManager::addTriangleMesh(const std::string& filename,
     // Make sure the data is copied to the device
     copyToDevice();
 
-    std::cout << "Mesh loaded with " << h_mesh[obj_id].numTriangles()
-              << " triangles and added to scene as object " << obj_id
-              << std::endl;
+    // std::cout << "Mesh loaded with " << h_mesh[obj_id].numTriangles()
+    //           << " triangles and added to scene as object " << obj_id
+    //           << std::endl;
 }
 
 // Old function to add triangle mesh with color
@@ -202,7 +206,7 @@ __host__ void SceneManager::addTriangleMeshSpectrum(const std::string& filename,
 
 // Allocate GPU resources
 __host__ void SceneManager::allocateResources() {
-    std::cout << "Allocating GPU resources" << std::endl;
+    // std::cout << "Allocating GPU resources" << std::endl;
     // Allocate host image buffer
     h_image = new Vec3[width * height];
 
@@ -385,13 +389,46 @@ __host__ void SceneManager::renderSpectralMesh(int samples_per_pixel) {
     // unsigned int seed = static_cast<unsigned int>(time(nullptr)); // Random
     unsigned int seed = 1337;  // Fixed
 
+    // Using signalling to print the progress
+    // https://stackoverflow.com/a/20381924
+    volatile int* h_progress;
+    volatile int* d_progress;
+    cudaSetDeviceFlags(cudaDeviceMapHost);
+    cudaHostAlloc((void**)&h_progress, sizeof(int), cudaHostAllocMapped);
+    cudaHostGetDevicePointer((void**)&d_progress, (int*)h_progress, 0);
+    *h_progress = 0;
+
     renderSpectralMeshKernel<<<grid_dim, block_dim>>>(
         d_image, d_aabb, d_mesh, num_objects, d_num_triangles, camera_params,
-        samples_per_pixel, seed);
+        samples_per_pixel, seed, d_progress);
+
+    // Copy the progress back to host
+    int scanline_progress =
+        (grid_dim.x * grid_dim.y + 16 - 1) / 16;  // Rounds up
+    float current_progress = 0.0f;
+    do {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(100));  // lazy checker
+        int val = *h_progress;
+        float kern_progress =
+            static_cast<float>(val) / static_cast<float>(scanline_progress);
+        if (kern_progress - current_progress > 0.01f) {
+            current_progress = kern_progress;
+            printf("Progress: %2.1f%%\r", (kern_progress * 100));
+            fflush(stdout);
+        } else if (val >= scanline_progress - 1) {
+            break;
+        }
+    } while (current_progress < 1.0f);
+    printf("Progress: 100.0%%\n");
+
 
     cudaDeviceSynchronize();
     timer.stop();
     CUDA_CHECK(cudaGetLastError());
+
+    // Free progress resources
+    cudaFreeHost((void*)h_progress);
 }
 
 // Get AABB bounds for all objects

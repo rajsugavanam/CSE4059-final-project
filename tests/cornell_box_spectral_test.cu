@@ -19,10 +19,11 @@ enum EmissionID {
     LIGHT_EMISSION
 };
 
+// TODO: clean up main => move to scene manager
+// create new src/crt.cu with arg for number of samples per pixel
 int main() {
-    Timer timer;
-    timer.start("Total Time");
-    
+    // Timer total_timer;
+    // total_timer.start("Cornell Box Spectral Test");
     // Define list of objects here
     std::vector<std::string> obj_list = {
         "light",      "donkey_kong", "left_wall", "back_wall",
@@ -75,20 +76,18 @@ int main() {
         // Save with sample count in filename
         std::string filename = "cornell_box_spectral_" + std::to_string(samples) + "spp.ppm";
         scene.saveImage(filename.c_str());
-        std::cout << "Image saved as " << filename << std::endl;
     }
     
     // Single Render with x samples
-    // int samples = 1024;
+    // int samples = 2048;
     // std::cout << "\nRendering with " << samples << " samples per pixel..." << std::endl;
     // scene.renderSpectralMesh(samples);
     // scene.copyFromDevice();
     // // Save with sample count in filename
     // std::string filename = "cornell_box_spectral_" + std::to_string(samples) + "spp.ppm";
     // scene.saveImage(filename.c_str());
-    // std::cout << "Image saved as " << filename << std::endl;
 
-    timer.stop();
+    // total_timer.stop();
     std::cout << "All renders completed successfully." << std::endl;
     return 0;
 }
