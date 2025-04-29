@@ -29,7 +29,14 @@
 
 % ABSTRACT
 \begin{abstract}
-    [INSERT ABSTRACT HERE]
+    We present a spectral path tracer that showcases the capabilities and limits of the CUDA
+    programming model in the field of physically based rendering. The simplest ray tracing
+    algorithm requires the GPU to dispatch rays from the camera into the scene, and
+    calculate the interaction of the rays with the scene geometry in order to render an output
+    image of the camera's view. Our implementation focuses on rendering a Cornell box test scene
+    to demonstrate the accuracy and performance of the CUDA ray tracer (CRT). Representing the
+    scene geometry with triangle meshes presents the ability to interopt professional 3D modeling
+    software with the ray tracer, but also explores the limitations of our implementation.
 \end{abstract}
 
 % FIRST FIGURE
@@ -71,9 +78,15 @@
 \maketitle
 
 % INTRO
-\subfile{chapters/intro1}
-
-% \cite{PBRT4e}
+\subfile{chapters/1_intro}
+\subfile{chapters/2_problem_statement}
+\subfile{chapters/3_approach}
+\subfile{chapters/4_implementation}
+\subfile{chapters/5_performance_measurements}
+\subfile{chapters/6_optimizations_applied}
+\subfile{chapters/7_results}
+\subfile{chapters/8_discussion}
+\subfile{chapters/9_conclusion}
 
 % NEXT SECTION
 % \newpage
