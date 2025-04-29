@@ -166,7 +166,9 @@ __device__ Vec3 colorRayTriangle(const Ray& ray, const AABB* boxes,
     }
 
     // No hit, return sky background
-    return skyBg(ray);
+    // return skyBg(ray);
+    // No hit, return black
+    return Vec3(0.0f, 0.0f, 0.0f);
 }
 
 __device__ Vec3 colorRayBox(const Ray& ray, const AABB* boxes,
@@ -174,19 +176,13 @@ __device__ Vec3 colorRayBox(const Ray& ray, const AABB* boxes,
     // Check intersection with any box in the array
     for (int i = 0; i < num_objects; i++) {
         if (boxes->hitAABB(ray, i)) {
-            //
-            switch (i % 3) {
-                case 0:
-                    return Vec3(1.0f, 0.0f, 0.0f);  // red
-                case 1:
-                    return Vec3(0.0f, 1.0f, 0.0f);  // green
-                default:
-                    return Vec3(0.0f, 0.0f, 1.0f);  // white
-            }
+            // posterized color based on obj id
+            return quantizedColor(i);
         }
     }
     // Background color (gradient from blue to white)
-    return skyBg(ray);
+    // return skyBg(ray);
+    return Vec3(0.0f, 0.0f, 0.0f);  // No hit, return black
 }
 
 // Modified kernel to use an array of AABB objects
@@ -275,16 +271,16 @@ __device__ float randomFloat(unsigned int* seed) {
     return static_cast<float>(*seed) / 4294967295.0f;  // Divide by 2^32-1
 }
 
-// TODO: Replace with cosine-weighted hemisphere sampling
-// Generate a random point on hemisphere for diffuse reflection
+// Malley's Method: Generate cosine weighted point on hemisphere
+// https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#Cosine-WeightedHemisphereSampling
 __device__ Vec3 randomHemispherePoint(const Vec3& normal, unsigned int* seed) {
     // Generate random spherical coordinates
-    float z = randomFloat(seed);
-    float r = sqrtf(1.0f - z * z);
+    float r = sqrtf(randomFloat(seed));
     float phi = 2.0f * M_PI * randomFloat(seed);
     float x = r * cosf(phi);
     float y = r * sinf(phi);
 
+    float z = sqrtf(fmaxf(0.0f, 1.0f - x * x - y * y));
     // Create orthonormal basis (u, v, w) from normal
     Vec3 w = normal;
     Vec3 u;
@@ -364,7 +360,7 @@ __device__ bool spectralTracePath(const Ray& primary_ray, const AABB* boxes,
                                  hit_v * mesh[hit_obj_id].d_n2z[hit_tri_idx]));
 
         // Ensure normal points against the ray
-        if (dot(hit_normal, current_ray.direction()) > 0) {
+        if (dot(hit_normal, current_ray.direction()) > 0.0f) {
             hit_normal = hit_normal * -1.0f;
         }
 
@@ -401,20 +397,20 @@ __device__ bool spectralTracePath(const Ray& primary_ray, const AABB* boxes,
         // }
 
         // Generate a new ray direction based on material properties
-        Vec3 new_direction;
+        Vec3 new_direction = randomHemispherePoint(hit_normal, seed);
 
-        switch (mat.type) {
-            case MaterialType::DIFFUSE:
-                new_direction = randomHemispherePoint(hit_normal, seed);
-                break;
-            default:
-                new_direction = randomHemispherePoint(hit_normal, seed);
-                break;
-        }
+        // TODO: Handle different material types
+        // switch (mat.type) {
+        //     case MaterialType::DIFFUSE:
+        //         new_direction = randomHemispherePoint(hit_normal, seed);
+        //         break;
+        //     default:
+        //         new_direction = randomHemispherePoint(hit_normal, seed);
+        //         break;
+        // }
 
-        // Offset the ray origin slightly to avoid self-intersection
-        const float epsilon = 0.001f;
-        Vec3 new_origin = hit_point + hit_normal * epsilon;
+        // new origin after triangle hit
+        Vec3 new_origin = hit_point + hit_normal;
 
         // Update the ray for the next bounce
         current_ray = Ray(new_origin, new_direction);
@@ -495,16 +491,23 @@ __global__ void renderSpectralMeshKernel(Vec3* image_buffer, AABB* boxes,
     pixel_color.y /= samples_per_pixel;
     pixel_color.z /= samples_per_pixel;
 
-    // TODO: Add  Reinhard tone map on RGB or Luminance instead?
+    // Reinhard tone mapping
+    // C = C / (1 + C)
+    // Exposure tone map from OpenGL
+    // C = 1 - exp(-C * Exposure) 
+    pixel_color.x = 1.0f - expf(-pixel_color.x * 3.5f);
+    pixel_color.y = 1.0f - expf(-pixel_color.y * 3.5f);
+    pixel_color.z = 1.0f - expf(-pixel_color.z * 3.5f);
+
     // Apply gamma correction
     pixel_color.x = srgbGammaCorrection(pixel_color.x);
     pixel_color.y = srgbGammaCorrection(pixel_color.y);
     pixel_color.z = srgbGammaCorrection(pixel_color.z);
 
-    // Clamp to [0,1] range
-    pixel_color.x = fminf(fmaxf(pixel_color.x, 0.0f), 1.0f);
-    pixel_color.y = fminf(fmaxf(pixel_color.y, 0.0f), 1.0f);
-    pixel_color.z = fminf(fmaxf(pixel_color.z, 0.0f), 1.0f);
+    // Clamp min to 0.0f
+    pixel_color.x = fmaxf(pixel_color.x, 0.0f);
+    pixel_color.y = fmaxf(pixel_color.y, 0.0f);
+    pixel_color.z = fmaxf(pixel_color.z, 0.0f);
 
     // Store the final color
     image_buffer[pixel_idx] = Vec3(pixel_color.x, pixel_color.y, pixel_color.z);

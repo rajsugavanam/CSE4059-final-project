@@ -37,4 +37,23 @@ __device__ __forceinline__ Vec3 threeColor(int hit_obj_id) {
             return Vec3(0.2f, 0.2f, 1.0f);  // Blue
     }
 }
+
+__device__ __forceinline__ Vec3 quantizedColor(int hit_obj_id) {
+    // Cool OKLAB perceptual uniform color gradient (Palette 3)
+    // https://evannorton.github.io/Acerolas-Epic-Color-Palettes/
+    float3 colors[8] = {
+        make_float3(60.0f, 34.0f, 74.0f),
+        make_float3(89.0f, 45.0f, 83.0f),
+        make_float3(122.0f, 58.0f, 91.0f),
+        make_float3(159.0f, 75.0f, 97.0f),
+        make_float3(199.0f, 96.0f, 104.0f),
+        make_float3(240.0f, 122.0f, 110.0f),
+        make_float3(255.0f, 155.0f, 119.0f),
+        make_float3(255.0f, 195.0f, 132.0f)
+    };
+    return Vec3(colors[hit_obj_id % 8].x / 255.0f,
+                colors[hit_obj_id % 8].y / 255.0f,
+                colors[hit_obj_id % 8].z / 255.0f);
+}
+
 #endif  // RAY_COLOR_CUH

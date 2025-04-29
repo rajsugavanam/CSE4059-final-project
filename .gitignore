@@ -4,12 +4,16 @@ project_proposal.*
 
 .DS_Store
 
+# tex stuff
 *.aux
 *.fdb_latexmk
 *.fls
 *.log
 *.out
 *.synctex.gz
+# bib stuff
+*.bbl
+*.blg
 
 # EXTRA
 # .clangd

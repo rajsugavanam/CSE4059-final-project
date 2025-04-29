@@ -138,13 +138,7 @@ __device__ Vec3 colorRay(const Ray& ray, Triangle3* triangles,
         return 0.5f * Vec3(closest_normal.x() + 1.0f, closest_normal.y() + 1.0f,
                            closest_normal.z() + 1.0f);
     } else {
-        // Background color when no intersection
-        Vec3 unit_direction = unit_vector(ray.direction());
-        float alpha =
-            0.5f * (unit_direction.y() + 1.0);  // y = [-1,1] to y = [0,1]
-        // lerp between white (1, 1, 1) to sky_blue (0.5, 0.7, 1)
-        return (1.0f - alpha) * Vec3(1.0f, 1.0f, 1.0f) +
-               alpha * Vec3(0.5f, 0.7f, 1.0f);
+        return Vec3(0.0f, 0.0f, 0.0f);  // black background
     }
 }
 

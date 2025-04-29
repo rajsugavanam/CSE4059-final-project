@@ -95,6 +95,19 @@ target_link_libraries(reduction
 #     ${CMAKE_CURRENT_SOURCE_DIR}/include/pathtracer
 # )
 
+# CORNELL BOX SPECTRAL TEST ------------------------------
+add_executable(cornell_box "src/cornell_box.cu")
+target_link_libraries(cornell_box
+    aabb
+    reduction
+    triangle_mesh
+    scene_manager
+)
+target_include_directories(cornell_box
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include/util
+)
+
 # TESTS ------------------------------
 enable_testing()
 add_subdirectory(tests)

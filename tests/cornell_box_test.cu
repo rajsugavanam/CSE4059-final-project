@@ -40,6 +40,7 @@ int main() {
     //     sizeof(Material) * list_size));
 
     scene.renderMesh();
+    // scene.renderBox();
 
     scene.copyFromDevice();
     scene.saveImage("cornell_box_test.ppm");
