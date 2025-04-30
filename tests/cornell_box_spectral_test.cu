@@ -3,9 +3,9 @@
 
 #include "camera.h"
 #include "scene_manager.cuh"
-#include "timer.h"
-#include "util/spectrum.cuh"
-#include "material.cuh"
+// #include "timer.h"
+// #include "util/spectrum.cuh"
+// #include "material.cuh"
 
 // Spectral material IDs
 enum ReflectanceID {
@@ -67,7 +67,7 @@ int main() {
     }
 
     // Render with multiple different sample counts
-    std::vector<int> sample_counts = {1, 4, 16, 64, 256};
+    std::vector<int> sample_counts = {1, 4, 16, 64, 256, 1024, 4096, 16384};
     
     for (int samples : sample_counts) {
         std::cout << "\nRendering with " << samples << " samples per pixel..." << std::endl;
@@ -79,12 +79,12 @@ int main() {
     }
     
     // Single Render with x samples
-    // int samples = 2048;
+    // int samples = 16'384;
     // std::cout << "\nRendering with " << samples << " samples per pixel..." << std::endl;
     // scene.renderSpectralMesh(samples);
     // scene.copyFromDevice();
     // // Save with sample count in filename
-    // std::string filename = "cornell_box_spectral_" + std::to_string(samples) + "spp.ppm";
+    // std::string filename = "dk_cb_" + std::to_string(samples) + "spp.ppm";
     // scene.saveImage(filename.c_str());
 
     // total_timer.stop();

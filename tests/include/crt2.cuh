@@ -9,6 +9,7 @@
 #include "ray.cuh"
 #include "triangle3.cuh"
 #include "vec3.cuh"
+#include "ray_color.cuh"
 #include "camera.h"
 
 // coalesced init for RNG
@@ -99,7 +100,7 @@ __device__ Vec3 colorRay(const Ray& ray, Triangle3* triangles,
     Vec3 tri_intersect;
     float u;
     float v;
-    float w;
+    // float w;
     float t = INFINITY;
 
     if (triangle_idx < num_triangle) {
@@ -117,26 +118,27 @@ __device__ Vec3 colorRay(const Ray& ray, Triangle3* triangles,
         Vec3 closest_normal;
 
         // barycentric coord for face normal interpolation
-        w = 1.0f - u - v;
-        closest_normal = w * hit_triangle.normal0() +
-                         u * hit_triangle.normal1() +
-                         v * hit_triangle.normal2();
-
+        // w = 1.0f - u - v;
+        // closest_normal = w * hit_triangle.normal0() +
+        //                  u * hit_triangle.normal1() +
+        //                  v * hit_triangle.normal2();
+        //
         // for (int diffuseIdx)
         // simple lambertian diffuse
-        Vec3 light = unit_vector(Vec3(0.0f, 5.0f, -5.0f) - tri_intersect);
-        // just whiteCol color for now... use texture norm
-        Vec3 whiteCol = Vec3(1.0f, 1.0f, 1.0f);
-        float cos = dot(closest_normal, light);
-        if (cos < 0.0f) {  // not sure if this is needed
-            cos = 0.0f;
-        }
+        // Vec3 light = unit_vector(Vec3(0.0f, 5.0f, -5.0f) - tri_intersect);
+        // // just whiteCol color for now... use texture norm
+        // Vec3 whiteCol = Vec3(1.0f, 1.0f, 1.0f);
+        // float cos = dot(closest_normal, light);
+        // if (cos < 0.0f) {  // not sure if this is needed
+        //     cos = 0.0f;
+        // }
         // return whiteCol * cos * 0.8f;
 
         // NORMAL MAP SAUCE
-        closest_normal = unit_vector(closest_normal);
-        return 0.5f * Vec3(closest_normal.x() + 1.0f, closest_normal.y() + 1.0f,
-                           closest_normal.z() + 1.0f);
+        // closest_normal = unit_vector(closest_normal);
+        // return 0.5f * Vec3(closest_normal.x() + 1.0f, closest_normal.y() + 1.0f,
+        //                    closest_normal.z() + 1.0f);
+        return quantizedColor(triangle_idx);
     } else {
         return Vec3(0.0f, 0.0f, 0.0f);  // black background
     }
