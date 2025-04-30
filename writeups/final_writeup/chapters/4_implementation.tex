@@ -7,9 +7,55 @@
 
 \begin{document}
 
-\section{Section}
+\section{Implementation}
 
-Paragraph here
+
+\emph{.obj Inputs.} We only use the host to read in .obj files, as doing so
+requires use of system calls, which cannot be done on the device for obvious
+reasons.
+
+\emph{Thread Mapping.} Each thread handles a single output pixel of the result image.
+
+\emph{Camera Setup.} Our implementation of perspective projection uses a
+point-based camera origin with a given focal length and FOV. This gives rise to
+a viewing plane in the scene, which can also be translated to a pixel grid
+(i.e., image output) through simple use of basis vectors to facilitate the
+bijection/translation between scene and image.
+
+\emph{Object Algorithms.} We use the M\"oller-Trumbore ray-triangle
+intersection to detect which rays hit models, and where. Each thread performs
+multiple calls to this algorithm, to serve the purpose of handling (multiple) light path bounces.
+% TODO: MOVE TO DISCUSSION!!!!
+This is inefficient from under-utilization of the device with smaller images, 
+however a simple optimization of distributing several sampled paths for a given pixel
+across multiple threads can easily alleviate this problem. We solved z-fighting by
+only rendering the closest triangle for a given ray.
+
+\emph{Light Bounces.} A fully realistic model of ray tracing would consider infinite amounts
+of light rays that bounce from an incident ray, each of which differ by a differential element.
+This is not feasible on a computer; it is more reasonable to simulate this by bouncing a certain
+\(k\) number of rays for every incident ray, however for a maximum of \(n\) bounces,
+assuming a triangle mesh of \(O(m)\) size and intersection performance of \(O(m)\),
+we get a worst-case of \(O(k^n m)\) computation time for a single ray for a single
+pixel on the camera. This is also infeasible despite the parallelization.
+
+We opt to eliminate the exponential nature of this procedure by considering ``paths'' of light.
+In other words, we set \(k=1\), so our computation time remains linear in the amount
+of mesh triangles, which is a reasonable amount of work per thread. However, to give us
+more control of simulation accuracy, we define a \(P\) set of simulated light
+paths, per pixel. Each such \(p_i \in P\) is create by using randomized bounce angles
+at every triangle intersection.
+
+Suppose \(P\) is a set of light paths generated using a specific pixel.
+If \(p_i \in P\) is a sequence \([r_1, r_2, \hdots, r_N]\) of rays,
+\(r_1\) in \(p_i\) is equal to \(r_1\) in \(p_j\) (ray incident from a pixel),
+however it is only infinitesimally likely that \(r_k \in p_i\) is equal to \(r_k \in p_j\).
+
+\(P\), in effect, has non-exponential granularity for how accurate we wish to make
+our ray tracer. Suppose \(\|P\|=k\); we still get \(k\) bounces for the first triangle
+intersection from the camera's incident ray, but only \(O(kNm)\) polynomial runtime to
+compute all intersections.
+
 % \cite{IEC61966-2-1-Amd1}
 % \url{https://www.iec.ch/}
 

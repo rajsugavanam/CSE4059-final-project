@@ -7,9 +7,21 @@
 
 \begin{document}
 
-\section{Section}
+\section{Approach}
 
-Paragraph here
+\emph{Model setup.} We begin by setting up a simple perspective camera and read a sequence of object files. 
+We include a scene manager to handle multiple objects. We consider distances of
+triangles to the camera during rendering to ensure the output looks correct.
+
+\emph{Path Tracing Strategy.} We follow a widely used method in this respect by
+tracing light backwards, ie from the camera to the light source. As fully
+accurate ray tracers are almost impossible to feasibly run, our approach made
+heavy use of estimation techniques.
+
+\emph{Color.} During our implementation we found an opportunity to use
+wavelength-based colors rather than only RGB. This implies the usage of
+conversions from wavelength to RGB, as monitors can only feasibly display RGB.
+To this effect, we experimented with different color representations.
 % \cite{IEC61966-2-1-Amd1}
 % \url{https://www.iec.ch/}
 

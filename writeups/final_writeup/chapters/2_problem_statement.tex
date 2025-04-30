@@ -7,9 +7,14 @@
 
 \begin{document}
 
-\section{Section}
+\section{Problem Statement}
 
-Paragraph here
+We address the computational problem of non-real-time, physically-based path
+tracing that is facilitated through parallelism. We specifically make the
+tradeoff to forgo simulation time in favor of more accurate light bounces. We
+only considered meshes composed of triangular faces, as every polygonal mesh
+can be decomposed to fit this. Furthermore, it greatly simplifies how we
+represent models in the code, which permits further optimizations.
 % \cite{IEC61966-2-1-Amd1}
 % \url{https://www.iec.ch/}
 

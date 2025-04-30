@@ -14,6 +14,7 @@ project_proposal.*
 # bib stuff
 *.bbl
 *.blg
+**/*.pdf
 
 # EXTRA
 # .clangd

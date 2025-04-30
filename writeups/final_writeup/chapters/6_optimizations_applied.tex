@@ -7,9 +7,20 @@
 
 \begin{document}
 
-\section{Section}
+\section{Optimizations}
 
-Paragraph here
+One primary optimization we used was AABBs (axis-aligned bounding boxes) to
+compute a top-level intersection box that rays which have a chance to strike a
+triangle are guaranteed to hit. The intersection of this box is low cost and
+far easier to initially compute than iterate through every mesh triangle,
+therefore we use it as an initial filter to determine which pixels should
+proceed to multi-bounce path trace. This improves our compute time for
+smaller/farther distance meshes. The effect of this optimization reduces as
+more of the mesh fills the viewing range of the camera.
+
+We restructured the arrays of vectors for a mesh to prioritize components first, rather
+than vectors first. Our array structure will use a major order with all vertices' \(x\)-components
+first, then \(y\), then \(z\). This makes coalescing memory accesses between threads far easier.
 % \cite{IEC61966-2-1-Amd1}
 % \url{https://www.iec.ch/}
 
