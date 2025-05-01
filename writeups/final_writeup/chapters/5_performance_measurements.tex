@@ -53,9 +53,8 @@ for $N = 10^8$ elements.
 Table \ref{tab:dk-reduction} shows the performance of the reduction algorithm
 being inefficient for very small triangle mesh objects with less than 1,000
 triangles, but the GPU starts to outperform the CPU for any triangle mesh larger
-than 5,000 triangles. Furthermore using CUDA streams allows the GPU to perform
-multiple reductions on the triangle mesh object which uses Structure of Arrays (SoA)
-to store 9 separate arrays accounting for each component of a triangle's vertices.
+than 5,000 triangles. Furthermore using CUDA streams further improves the performance of
+calculating the AABB for increasingly larger triangle meshes.
   
   % AABB Speedup table
 \begin{table}[h]

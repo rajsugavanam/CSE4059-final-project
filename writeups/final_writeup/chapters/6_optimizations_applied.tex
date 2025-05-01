@@ -18,11 +18,38 @@ proceed to multi-bounce path trace. This improves our compute time for
 smaller/farther distance meshes. The effect of this optimization reduces as
 more of the mesh fills the viewing range of the camera.
 
-We restructured the arrays of vectors for a mesh to prioritize components first, rather
-than vectors first. Our array structure will use a major order with all vertices' \(x\)-components
-first, then \(y\), then \(z\). This makes coalescing memory accesses between threads far easier.
-% \cite{IEC61966-2-1-Amd1}
-% \url{https://www.iec.ch/}
+% CUDA stuff
+
+We also used several optimizations exclusive to the CUDA programming model. Due to the
+complex nature of simulating physical light, several parts of our code were written with
+object-oriented programming in mind. This requires us to enable separable compilation and
+linking device code to the host code. One caveat of this is that having separately compiled
+device code requires device link time optimization to be enabled via the
+\texttt{CMAKE\_INTERPROCEDURAL\_\\OPTIMIZATION} option in CMake. This allows the compiler to
+optimize the device code at link time rather than at compile time, thus allowing 
+function inlining and other optimizations to be performed across translation units.
+
+For the AABB calculation, we first used a Structure of Arrays (SoA) memory layout to allow for
+memory coalescing we perform reduction on shared memory to calculate the minimum and maximum bounds
+of a triangle mesh. Furthermore, due to the dynamic nature of the AABB calculation, our reduction
+implementation allows for an arbitrary length array of triangles to be passed in, and completes
+the final reduction between the blocks of a single kernel using custom \texttt{atomicMin()} and
+\texttt{atomicMax()} implemented based on the CUDA \texttt{atomicCAS()} function. Finally,
+CUDA streams were used to allow for multiple reduction to be performed in parallel on the GPU
+since the AABB calculation requires 9 reductions (each triangle has three vertices each with an
+$x, y, z$ component stored as a \texttt{float*}) to be performed on a triangle mesh object. Although
+the SoA layout greatly improves AABB calculation performance, the memory accesses during the
+traversal of a rays through a scene is not coalesced very well since the path of each ray
+diverges greatly, so moving from using a Array of Structures (AoS) to a SoA layout only improved
+the ray tracing performance by about 1.12x. 
+
+Since ray tracing is a highly memory bound operation, we used constant memory to store
+the material properties of each triangle mesh object. This included the reflectance spectrum
+of each triangle mesh object to be accessable via \texttt{reflectance\_id} and the emission spectrum
+of the light object. In addition, we also used constant memory to store the discrete values of
+the color matching functions (CMFs) to compute the CIE 1931 XYZ color space values and its
+corresponding XYZ to RGB transformation matrix. This greatly reduces the number of
+global memory accesses to the GPU already bounded by the triangle intersection test.
 
 % for subfile compilation
 \ifSubfilesClassLoaded{%
