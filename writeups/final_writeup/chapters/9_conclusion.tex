@@ -7,9 +7,22 @@
 
 \begin{document}
 
-\section{Section}
+\section{Conclusion}
 
-Paragraph here
+One approach we considered was to use the \texttt{curand} interface to generate
+random numbers. We had a partial implementation of this, but ended up using our
+own XORShift pseudo-random number generator. We still sample with a
+cosine-weighted distribution. We could have seen further optimization from
+usage of RT cores via NVIDIA Optix (speed-up with ray-triangle intersection,
+etc). We discussed implementing more material properties for objects;
+specifically, reflective, specular, and caustic. With enough time, we may have
+developed a protocol to utilize corresponding \texttt{.mtl} files, which we
+currently ignore.
+
+Overall,
+our model is successful in feasibly simulating the basic behavior of light.
+Further developments would focus on enhancing the visual complexity of
+our renders.
 % \cite{IEC61966-2-1-Amd1}
 % \url{https://www.iec.ch/}
 

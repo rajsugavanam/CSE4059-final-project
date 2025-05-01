@@ -7,9 +7,35 @@
 
 \begin{document}
 
-\section{Section}
+\section{Results}
 
-Paragraph here
+We direct the reader to Figure (\ref{fig:teaser}) for the output \texttt{.ppm}
+images for our program. Figures (\ref{fig:teaser1}) and (\ref{fig:teaser2})
+indicate our representations for AABBs and smooth shading. Smooth shading is a
+technique that calculates interpolated normals at any point on a triangle,
+using vertex normals. That is, if we represent point \(P\) in space with barycentric coordinates of
+triangle \(ABC\) by
+\begin{equation*}
+    P = \lambda_1 A + \lambda_2 B + \lambda_3 C,
+\end{equation*}
+then we calculate the surface normal \emph{at point} \((\lambda_1, \lambda_2, \lambda_3)\) to be
+\begin{equation*}
+    N = \lambda_1 N_i + \lambda_2 N_j + \lambda_3 N_k,
+\end{equation*}
+where \(N_i\), \(N_j\), and \(N_k\) are vertex normals of \(A\), \(B\), and \(C\) respectively.
+
+If we had used a face normal based method, where each triangle gets assigned \emph{one} \(N\)
+regardless of any barycentric point \((\lambda_1, \lambda_2, \lambda_3)\), we would see
+`sharp' shading with more pronounced edges.
+
+As RGB color can be encoded as a 3-dimensional vector, we see that the surface color of Figure
+(\ref{fig:teaser2}) represents the direction of our calculated \(N\).
+
+Soft shadows, seen in Figures (\ref{fig:teaser3}) and (\ref{fig:teaser4}), are
+a result of our ray tracing model. Figure (\ref{fig:teaser3}) has a far greater
+amount of noise due to an extremely low sample count, which cannot rely on the
+law of large numbers to accurately color an output pixel with volume of light
+paths.
 % \cite{IEC61966-2-1-Amd1}
 % \url{https://www.iec.ch/}
 
