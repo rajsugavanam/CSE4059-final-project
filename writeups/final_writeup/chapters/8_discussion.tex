@@ -35,12 +35,12 @@
 \section{Discussion}
 
 Although the CRT renderer is capable of rendering a Cornell box scene with a
-triangle mesh object (Figure\ref{fig:cornell_box_16384spp}), the perfomance greatly suffers for increasingly complex
+triangle mesh object (Figure \ref{fig:cornell_box_16384spp}), the perfomance greatly suffers for increasingly complex
 triangle meshes. For simple geometry, the CRT can render the original Cornell Box
 test scence with 16,384 samples per pixel in 700s compared to 12,000s for the
 Donkey Kong Cornell box scene. For even more complex geometry used in professional
 3D modeling software, our implementation does not scale to the same computational
-speed as the PBRT GPU renderer (Figure\ref{fig:dragon_1024spp}). This is due to our CRT computing
+speed as the PBRT GPU renderer (Figure \ref{fig:dragon_1024spp}). This is due to our CRT computing
 only indirect lighting and not using any further acceleration structures to speed up the
 ray-triangle intersection test. Despite the limitations of our implementation, the CRT
 renderer is capable of taking \texttt{.obj} files from professional 3D modeling software
