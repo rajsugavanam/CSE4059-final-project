@@ -13,7 +13,7 @@ int main() {
     
     // Define list of objects here
     std::vector<std::string> obj_list = {
-        "light",      "donkey_kong", "left_wall", "back_wall",
+        "light",      "dragon", "left_wall", "back_wall",
         "right_wall", "ceiling",     "floor"};
     int list_size = obj_list.size();
 

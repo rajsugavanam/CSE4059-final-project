@@ -26,7 +26,7 @@ int main() {
     // total_timer.start("Cornell Box Spectral Test");
     // Define list of objects here
     std::vector<std::string> obj_list = {
-        "light",      "donkey_kong", "left_wall", "back_wall",
+        "light",      "dragon", "left_wall", "back_wall",
         "right_wall", "ceiling",     "floor"};
     int list_size = obj_list.size();
 
@@ -67,14 +67,14 @@ int main() {
     }
 
     // Render with multiple different sample counts
-    std::vector<int> sample_counts = {1, 4, 16, 64, 256, 1024, 4096, 16384};
+    std::vector<int> sample_counts = {1024, 4096};
     
     for (int samples : sample_counts) {
         std::cout << "\nRendering with " << samples << " samples per pixel..." << std::endl;
         scene.renderSpectralMesh(samples);
         scene.copyFromDevice();
         // Save with sample count in filename
-        std::string filename = "cornell_box_spectral_" + std::to_string(samples) + "spp.ppm";
+        std::string filename = "dragon_" + std::to_string(samples) + "spp.ppm";
         scene.saveImage(filename.c_str());
     }
     
